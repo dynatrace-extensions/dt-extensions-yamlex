@@ -1,0 +1,15 @@
+DATASOURCE_NAMES = [
+    "gcp",
+    "jmx",
+    "python",
+    "snmp",
+    "snmptraps",
+    "sqlDb2",
+    "sqlHana",
+    "sqlMySql",
+    "sqlOracle",
+    "sqlPostgres",
+    "sqlServer",
+    "sqlSnowflake",
+    "wmi",
+]

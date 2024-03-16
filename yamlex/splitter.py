@@ -4,15 +4,15 @@ from pathlib import Path
 
 import ruamel.yaml
 
-from yaml_assembler.folder_structure import ensure_folder_structure
-from yaml_assembler.datasource_names import DATASOURCE_NAMES
+from yamlex.folder_structure import ensure_folder_structure
+from yamlex.datasource_names import DATASOURCE_NAMES
 
 
 logger = logging.getLogger(__name__)
 parser = ruamel.yaml.YAML()
 
 
-def disassemble_yaml(extension_yaml_dir_path: Path) -> None:
+def split_yaml(extension_yaml_dir_path: Path) -> None:
     """Decompose a YAML file into multiple files."""
     extension_yaml_file_path = extension_yaml_dir_path / "extension.yaml"
 
@@ -37,29 +37,34 @@ def disassemble_yaml(extension_yaml_dir_path: Path) -> None:
     logger.info(f"Processing datasource groups...")
     if datasource_name and datasource_name != "python":
         datasource_dir_path = extension_yaml_dir_path / datasource_name
-        groups: list[dict] = data[datasource_name]
-        for group in groups:
-            group_name: str = group.get("group")
-            if not group_name:
-                logger.error(f"Group does not have a name")
+
+        items: list[dict] = data[datasource_name]
+        for item in items:
+            if datasource_name == "processes":
+                item_name: str = item.get("name")
+            else:
+                item_name: str = item.get("group")
+
+            if not item_name:
+                logger.error(f"Item does not have a name")
                 continue
 
             # Convert group name to a file name with only lowercase and underscores
-            group_name_id = re.sub(r"[^a-z0-9_]", "_", group_name.lower())
-            group_file_name = f"{group_name_id}.yaml"
+            item_name_id = re.sub(r"[^a-z0-9_]", "_", item_name.lower())
+            item_file_name = f"{item_name_id}.yaml"
 
             # Check whether such file already exists within the datasource directory
-            search_results = list(datasource_dir_path.glob(f"**/{group_file_name}"))
+            search_results = list(datasource_dir_path.glob(f"**/{item_file_name}"))
             if search_results:
-                logger.debug(f"Group file already exists: {search_results[0]}")
+                logger.debug(f"Item file already exists: {search_results[0]}")
                 continue
 
             # Extract group into a separate file
-            group_file_path = datasource_dir_path / group_file_name
-            with open(group_file_path, "w") as group_file:
+            item_file_path = datasource_dir_path / item_file_name
+            with open(item_file_path, "w") as item_file:
                 parser.indent(mapping=2, sequence=4, offset=2)
-                parser.dump(group, group_file)
-                logger.info(f"Group extracted: {group_file_path}")
+                parser.dump(item, item_file)
+                logger.info(f"Item extracted: {item_file_path}")
 
     # Process metrics
     logger.info(f"Processing metrics...")

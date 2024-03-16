@@ -30,7 +30,7 @@ def update_vscode_settings_json(
     if "yaml.schemas" not in vscode_settings:
         vscode_settings["yaml.schemas"] = {}
 
-    # First, map extension JSON schema definitions to extension YAML files
+    # Map extension JSON schema definitions to extension YAML files
     map_json_schemas_to_yaml(
         vscode_settings,
         project_dir_path,
@@ -216,6 +216,9 @@ def map_json_schemas_to_yaml(
             del schemas[k]
             break
 
+    # If project dir is just the current directory, then resolve it
+    project_dir_path = project_dir_path.resolve()
+
     # Make sure the directories are relative to the project directory
     extension_schema_dir_path = extension_schema_dir_path.resolve().relative_to(project_dir_path)
     extension_yaml_dir_path = extension_yaml_dir_path.resolve().relative_to(project_dir_path)
@@ -234,15 +237,57 @@ def map_json_schemas_to_yaml(
     # ------------------------------
 
     schemas[(extension_schema_dir_path / "extension.metrics.schema.json").as_posix()] = [
-        (extension_yaml_dir_path / "metrics" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "metrics" / "**/*.yaml").as_posix(),
     ]
 
     # ------------------------------
-    # sqlPostgres
+    # Datasources
     # ------------------------------
 
+    # gcp
+    schemas[(extension_schema_dir_path / "gcp.service.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "gcp" / "*.yaml").as_posix(),
+    ]
+
+    # jmx
+    schemas[(extension_schema_dir_path / "jmx.group.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "jmx" / "*.yaml").as_posix(),
+    ]
+
+    # processes
+    schemas[(extension_schema_dir_path / "processes.object.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "processes" / "*.yaml").as_posix(),
+    ]
+
+    # prometheus
+    schemas[(extension_schema_dir_path / "prometheus.object.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "prometheus" / "*.yaml").as_posix(),
+    ]
+
+    # snmp
+    schemas[(extension_schema_dir_path / "snmp.object.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "snmp" / "*.yaml").as_posix(),
+    ]
+
+    # snmptraps
+    schemas[(extension_schema_dir_path / "snmptraps.object.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "snmptraps" / "*.yaml").as_posix(),
+    ]
+
+    # sql
     schemas[(extension_schema_dir_path / "sql.object.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "sqlDb2" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "sqlHana" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "sqlMySql" / "*.yaml").as_posix(),
         (extension_yaml_dir_path / "sqlPostgres" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "sqlOracle" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "sqlServer" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "sqlSnowflake" / "*.yaml").as_posix(),
+    ]
+
+    # wmi
+    schemas[(extension_schema_dir_path / "wmi.object.schema.json").as_posix()] = [
+        (extension_yaml_dir_path / "wmi" / "*.yaml").as_posix(),
     ]
 
     # ------------------------------
@@ -250,11 +295,11 @@ def map_json_schemas_to_yaml(
     # ------------------------------
 
     schemas[(extension_schema_dir_path / "generic.types.object.schema.json").as_posix()] = [
-        (extension_yaml_dir_path / "topology" / "types" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "topology" / "types" / "**/*.yaml").as_posix(),
     ]
 
     schemas[(extension_schema_dir_path / "generic.relationships.object.schema.json").as_posix()] = [
-        (extension_yaml_dir_path / "topology" / "relationships" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "topology" / "relationships" / "**/*.yaml").as_posix(),
     ]
     
     # ------------------------------
@@ -262,7 +307,7 @@ def map_json_schemas_to_yaml(
     # ------------------------------
 
     schemas[(extension_schema_dir_path / "extension.screens.schema.json").as_posix()] = [
-        (extension_yaml_dir_path / "screens" / "*.yaml").as_posix(),
+        (extension_yaml_dir_path / "screens" / "**/*.yaml").as_posix(),
     ]
 
     # Update yaml.schemas mapping in settings.json

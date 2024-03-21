@@ -50,22 +50,29 @@ $ yamlex join --source extension/src --target extension/extension.yaml --force
 
 # Help message
 $ yamlex join --help
-
- Usage: yamlex join [OPTIONS]                                                               
-                                                                                            
- Join YAML files into a single file.                                                        
-                                                                                            
-╭─ Options ────────────────────────────────────────────────────────────────────────────────╮
-│ --source   -s      DIRECTORY  Path to directory where split YAML source files are        │
-│                               stored. [default: extension/src or src/extension/src]      │
-│ --target   -t      FILE       Path for target extension.yaml file that will be assembled │
-│                               from parts. [default: extension/extension.yaml or          │
-│                               src/extension/extension.yaml]                              │
-│ --force    -f                 Overwrite the files even if they were created manually.    │
-│ --verbose  -v                 Enable verbose output.                                     │
-│ --quiet    -q                 Disable any informational output. Only errors.             │
-│ --help                        Show this message and exit.                                │
-╰──────────────────────────────────────────────────────────────────────────────────────────╯
+ Usage: yamlex join [OPTIONS]                                                          
+                                                                                       
+ Join YAML files into a single file.                                                   
+                                                                                       
+╭─ Options ───────────────────────────────────────────────────────────────────────────╮
+│ --source   -s      DIRECTORY  Path to directory where split YAML source files are   │
+│                               stored. [default: parts or src/parts]                 │
+│ --target   -t      FILE       Path for target extension.yaml file that will be      │
+│                               assembled from parts. [default:                       │
+│                               extension/extension.yaml or                           │
+│                               src/extension/extension.yaml]                         │
+│ --dev      -d                 Prefix extension name with 'custom:' and use explicit │
+│                               version.                                              │
+│ --bump     -b                 Bump version in the version.properties file.          │
+│ --version  -v      TEXT       Explicitly set the version to use during assembly or  │
+│                               bump process.                                         │
+│                               [default: None]                                       │
+│ --force    -f                 Overwrite the files even if they were created         │
+│                               manually.                                             │
+│ --verbose                     Enable verbose output.                                │
+│ --quiet                       Disable any informational output. Only errors.        │
+│ --help                        Show this message and exit.                           │
+╰─────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 When assembling, the `join` command will avoid overwriting a manually
@@ -86,21 +93,21 @@ parsing the `--source` directory.
 ```text
 my-extension/
 ├── extension/
-│   ├── src/
-│   │   ├── metrics/
-│   │   │   ├── +account_metrics/
-│   │   │   │   ├── -my.account.storage.yaml
-│   │   │   │   └── -my.account.size.yaml
-│   │   │   └── my.availability.yaml
-│   │   ├── sqlOracle/
-│   │   │   └── index.yaml
-│   │   └── index.yaml
 │   └── extension.yaml
+├── source/
+│   ├── metrics/
+│   │   ├── +account_metrics/
+│   │   │   ├── -my.account.storage.yaml
+│   │   │   └── -my.account.size.yaml
+│   │   └── my.availability.yaml
+│   ├── sqlOracle/
+│   │   └── index.yaml
+│   └── index.yaml
 └── activation.json
 ```
 
 Here:
-- `my-extension/extension/src/` is a `--source` directory.
+- `my-extension/source/` is a `--source` directory.
 - `my-extension/extension/extension.yaml` is a `--target` file.
 
 For each level of directories within the given `--source` folder:
@@ -115,7 +122,7 @@ Couple of additional details:
 - If any file or folder on some inside a directory has a name that
   starts with `-`, then this whole directory is considered to be
   an array field.
-- An exception to this are folders that start with `+` symbol. These
+- Folders that start with `+` symbol
   are considered to be meta-grouping folders and files from them are
   treated as if they are not in those folder bur rather exist on the
   current level.
@@ -142,29 +149,30 @@ $ yamlex map .vscode/settings.json --json schema/ --source extension/src --root 
 # Help message
 $ yamlex map --help
 
- Usage: yamlex map [OPTIONS] [SETTINGS]                                                     
-                                                                                            
- Map JSON schema to YAML files in VS Code settings                                          
-                                                                                            
-╭─ Arguments ──────────────────────────────────────────────────────────────────────────────╮
-│   settings      [SETTINGS]  Path to the VS Code settings.json file.                      │
-│                             [default: .vscode/settings.json]                             │
-╰──────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ────────────────────────────────────────────────────────────────────────────────╮
-│ --json            -j      DIRECTORY  Path to directory with valid extensions JSON schema │
-│                                      files. [default: schema]                            │
-│ --source          -s      DIRECTORY  Path to directory where YAML source files will be   │
-│                                      stored. [default: extension/src or                  │
-│                                      src/extension/src]                                  │
-│ --root            -r      DIRECTORY  Root directory relative to which the paths in       │
-│                                      settings file will be mapped. [default: .]          │
-│ --extension-yaml  -e      FILE       Path to output extension.yaml file. [default:       │
-│                                      extension/extension.yaml or                         │
-│                                      src/extension/extension.yaml]                       │
-│ --verbose         -v                 Enable verbose output.                              │
-│ --quiet           -q                 Disable any informational output. Only errors.      │
-│ --help                               Show this message and exit.                         │
-╰──────────────────────────────────────────────────────────────────────────────────────────╯
+ Usage: yamlex map [OPTIONS] [SETTINGS]                                                
+                                                                                       
+ Map JSON schema to YAML files in VS Code settings                                     
+                                                                                       
+╭─ Arguments ─────────────────────────────────────────────────────────────────────────╮
+│   settings      [SETTINGS]  Path to the VS Code settings.json file.                 │
+│                             [default: .vscode/settings.json]                        │
+╰─────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ───────────────────────────────────────────────────────────────────────────╮
+│ --json            -j      DIRECTORY  Path to directory with valid extensions JSON   │
+│                                      schema files.                                  │
+│                                      [default: schema]                              │
+│ --source          -s      DIRECTORY  Path to directory where YAML source files will │
+│                                      be stored. [default: parts or src/parts]       │
+│ --root            -r      DIRECTORY  Root directory relative to which the paths in  │
+│                                      settings file will be mapped.                  │
+│                                      [default: .]                                   │
+│ --extension-yaml  -e      FILE       Path to output extension.yaml file. [default:  │
+│                                      extension/extension.yaml or                    │
+│                                      src/extension/extension.yaml]                  │
+│ --verbose                            Enable verbose output.                         │
+│ --quiet                              Disable any informational output. Only errors. │
+│ --help                               Show this message and exit.                    │
+╰─────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### (optional) Split the `extension.yaml`
@@ -186,21 +194,22 @@ $ yamlex split --source extension/extension.yaml --target extension/src
 # Help message
 $ yamlex split --help
 
- Usage: yamlex split [OPTIONS]                                                              
-                                                                                            
- Split central YAML file into parts.                                                        
-                                                                                            
-╭─ Options ────────────────────────────────────────────────────────────────────────────────╮
-│ --source   -s      FILE       Path to source extension.yaml file. [default:              │
-│                               extension/extension.yaml or src/extension/extension.yaml]  │
-│ --target   -t      DIRECTORY  Path to directory where split YAML source files will be    │
-│                               stored. [default: extension/src or src/extension/src]      │
-│ --force    -f                 Overwrite the files even if they were created manually.    │
-│ --verbose  -v                 Enable verbose output.                                     │
-│ --quiet    -q                 Disable any informational output. Only errors.             │
-│ --help                        Show this message and exit.                                │
-╰──────────────────────────────────────────────────────────────────────────────────────────╯
-
+ Usage: yamlex split [OPTIONS]                                                         
+                                                                                       
+ Split central YAML file into parts.                                                   
+                                                                                       
+╭─ Options ───────────────────────────────────────────────────────────────────────────╮
+│ --source   -s      FILE       Path to source extension.yaml file. [default:         │
+│                               extension/extension.yaml or                           │
+│                               src/extension/extension.yaml]                         │
+│ --target   -t      DIRECTORY  Path to directory where split YAML source files will  │
+│                               be stored. [default: parts or src/parts]              │
+│ --force    -f                 Overwrite the files even if they were created         │
+│                               manually.                                             │
+│ --verbose                     Enable verbose output.                                │
+│ --quiet                       Disable any informational output. Only errors.        │
+│ --help                        Show this message and exit.                           │
+╰─────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 It tries to split YAML in a way that makes sense. It also preserves all

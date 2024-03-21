@@ -1,8 +1,9 @@
 import logging
+import re
 from datetime import datetime
 from io import StringIO
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import ruamel.yaml
 
@@ -19,8 +20,11 @@ def adjust_root_logger(verbose: bool = False, quiet: bool = False) -> None:
 
 
 def get_default_extension_source_dir_path() -> Path:
-    parent_dir_path = get_default_extension_dir_path()
-    return parent_dir_path / "src"
+    src_dir_path = Path("src")
+    if src_dir_path.exists() and src_dir_path.is_dir():
+        return src_dir_path / "source"
+    else:
+        return Path("source")
 
 
 def get_default_extension_dir_path() -> Path:
@@ -85,3 +89,33 @@ def write_file_with_generated_comment(
         comment = get_generated_content_comment()
         f.write(comment)
         f.write(text)
+
+
+def read_version(path: Path, default: Optional[str] = None) -> str:
+    try:
+        with open(path, "r") as f:
+            content = f.read()
+            match_ = re.search(r"version=(.*)", content)
+            if not match_ and not default:
+                raise KeyError("Could not read current version")
+            return match_.group(1)
+    except Exception as e:
+        logger.error(f"Failed to open {path}: {e}")
+        exit(1)
+
+
+def write_version(path: Path, version: str) -> None:
+    try:
+        with open(path, "r") as rf:
+            lines = rf.readlines()
+            content = []
+            for l in lines:
+                if l.startswith("version"):
+                    content.append(f"version={version}\n")
+                else:
+                    content.append(l)
+        with open(path, "w") as wf:
+            wf.writelines(content) 
+    except Exception as e:
+        logger.error(f"Failed to write to {path}: {e}")
+        exit(1)

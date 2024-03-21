@@ -24,6 +24,8 @@ from yamlex.util import (
     get_default_extension_source_dir_path,
     is_manually_created,
     write_file_with_generated_comment,
+    read_version,
+    write_version,
 )
 
 
@@ -49,7 +51,6 @@ verbose_option = Annotated[
     bool,
     typer.Option(
         "--verbose",
-        "-v",
         help="Enable verbose output.",
     ),
 ]
@@ -57,7 +58,6 @@ quiet_option = Annotated[
     bool,
     typer.Option(
         "--quiet",
-        "-q",
         help="Disable any informational output. Only errors.",
     ),
 ]
@@ -97,7 +97,7 @@ def map(
             "-s",
             help=(
                 "Path to directory where YAML source files will be stored. "
-                "[dim]\\[default: extension/src or src/extension/src][/dim]"
+                "[dim]\\[default: parts or src/parts][/dim]"
             ),
             show_default=False,
             dir_okay=True,
@@ -197,7 +197,7 @@ def split(
             "-t",
             help=(
                 "Path to directory where split YAML source files will be stored. "
-                "[dim]\\[default: extension/src or src/extension/src][/dim]"
+                "[dim]\\[default: parts or src/parts][/dim]"
             ),
             show_default=False,
             dir_okay=True,
@@ -237,7 +237,7 @@ def join(
             "-s",
             help=(
                 "Path to directory where split YAML source files are stored. "
-                "[dim]\\[default: extension/src or src/extension/src][/dim]"
+                "[dim]\\[default: parts or src/parts][/dim]"
             ),
             show_default=False,
             dir_okay=True,
@@ -260,17 +260,87 @@ def join(
             file_okay=True,
         )
     ] = None,
+    dev: Annotated[
+        bool,
+        typer.Option(
+            "--dev",
+            "-d",
+            help="Prefix extension name with 'custom:' and use explicit version.",
+        ),
+    ] = False,
+    bump: Annotated[
+        bool,
+        typer.Option(
+            "--bump",
+            "-b",
+            help="Bump version in the version.properties file.",
+        )
+    ] = False,
+    version: Annotated[
+        Optional[str],
+        typer.Option(
+            "--version",
+            "-v",
+            help="Explicitly set the version to use during assembly or bump process."
+        ),
+    ] = None,
     force: force_option = False,
     verbose: verbose_option = False,
     quiet: quiet_option = False,
     debug: debug_option = False,
 ):
     adjust_root_logger(verbose, quiet)
+    
+    # Bump version, if requested
+    if bump:
+        current_version = read_version("version.properties")
+        logger.info(f"Current version: {current_version}")
+        # If new explicit version is not specified, then
+        # parse current version and bump it.
+        if not version:
+            version_parts = current_version.split(".")
+            part_int: int | None = None
+            part_idx: int | None = None
+            for i, part in enumerate(reversed(version_parts)):
+                try:
+                    part_int = int(part)
+                    part_idx = len(version_parts) - 1 - i
+                    break
+                except:
+                    continue
+            if not part_int:
+                logger.error("Could not find integer part in version to bump")
+                exit(1)
+
+            part_int += 1
+            version = ""
+            for i, part in enumerate(version_parts):
+                append = part
+                if i == part_idx:
+                    append = part_int
+                version += f"{append}."
+            version = version.rstrip(".")
+
+        write_version("version.properties", version)
+        logger.info(f"Bumped version to {version}")
 
     source = source or get_default_extension_source_dir_path()
     logger.debug(f"Source files directory: {source}")
 
     extension = assemble_recursively(source, debug=debug)
+
+    if dev:
+        if not version:
+            version = read_version("version.properties")
+
+        name = extension.get("name")
+        if isinstance(name, str) and not name.startswith("custom:"):
+            name = f"custom:{name}"
+            extension["name"] = name
+            logger.info(f"Set extension name to: {name}")
+
+        extension["version"] = version
+        logger.info(f"Set extension version to: {version}")
 
     target = target or get_default_extension_dir_path() / "extension.yaml"
     logger.debug(f"Target file: {target}")

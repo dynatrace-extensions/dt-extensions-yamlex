@@ -84,7 +84,7 @@ def assemble_recursively(dir_path: Path, debug: bool = False) -> Union[dict, lis
         is_grouper = dir.name.startswith("+")
 
         if is_array:
-            data.append(dir_data)
+            data.extend(dir_data)
         else:
             if is_grouper:
                 data.update(dir_data)

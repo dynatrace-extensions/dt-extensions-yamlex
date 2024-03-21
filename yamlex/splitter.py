@@ -86,8 +86,9 @@ def extract_datasource(
     for name in DATASOURCE_NAMES:
         if name in extension:
             datasource_name = name
-            datasource = extension[datasource_name]
+            datasource = extension.pop(datasource_name)
             break
+
     if datasource_name:
         logger.info(f"Datasource name detected: {datasource_name}")
     else:

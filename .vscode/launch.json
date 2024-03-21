@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug: -m yamlex",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "yamlex",
+            "justMyCode": false,
+            "args": ["join", "--help"],
+        }
+    ]
+}

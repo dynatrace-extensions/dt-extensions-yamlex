@@ -1,14 +1,30 @@
+import json
 import logging
 from pathlib import Path
 from typing import Optional
 
 import typer
 from typing_extensions import Annotated
+from rich import print
 
-from yamlex.schema_mapper import update_vscode_settings_json
-from yamlex.folder_structure import ensure_folder_structure
+from yamlex.mapper import (
+    validate_json_schemas_dir,
+    map_schema_to_sources,
+    read_vscode_settings_json_file,
+    extract_definitions_into_standalone_schemas,
+)
 from yamlex.splitter import split_yaml
-from yamlex.joiner import join_yaml
+from yamlex.joiner import (
+    assemble_recursively,
+    remove_yaml_comments,
+)
+from yamlex.util import (
+    adjust_root_logger,
+    get_default_extension_dir_path,
+    get_default_extension_source_dir_path,
+    is_manually_created,
+    write_file_with_generated_comment,
+)
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -17,63 +33,16 @@ logger = logging.getLogger(__name__)
 app = typer.Typer(
     name="yamlex",
     rich_markup_mode="rich",
+    no_args_is_help=True,
+    add_completion=False,
 )
 
-yaml_option = Annotated[
-    Optional[Path],
-    typer.Option(
-        "--yaml",
-        "-y",
-        help=(
-            "The directory containing the YAML files. "
-            "Defaults to: 'src/extension/' or 'extension/'"
-        ),
-        show_default=False,
-    ),
-]
-json_option = Annotated[
-    Path,
-    typer.Option(
-        "--json",
-        "-j",
-        help="Path to the directory with JSON schema files.",
-        exists=True,
-        readable=True,
-    ),
-]
-settings_option = Annotated[
-    Path,
-    typer.Option(
-        "--settings",
-        "-s",
-        help="Path to the VS Code settings.json file.",
-    ),
-]
-output_option = Annotated[
-    Optional[Path],
-    typer.Option(
-        "--output",
-        "-o",
-        help="Path to output extension.yaml file.",
-        show_default=False,
-    ),
-]
 force_option = Annotated[
     bool,
     typer.Option(
         "--force",
         "-f",
-        help="Overwrite the destination file if it was created manually.",
-    ),
-]
-cwd_option = Annotated[
-    Optional[Path],
-    typer.Option(
-        "--cwd",
-        help="The current working directory to use.",
-        exists=True,
-        readable=True,
-        hidden=True,
+        help="Overwrite the files even if they were created manually.",
     ),
 ]
 verbose_option = Annotated[
@@ -92,138 +61,236 @@ quiet_option = Annotated[
         help="Disable any informational output. Only errors.",
     ),
 ]
+debug_option = Annotated[
+    bool,
+    typer.Option(
+        "--debug",
+        hidden=True,
+    )
+]
 
 
-def adjust_logging(verbose: bool = False, quiet: bool = False) -> None:
-    if quiet:
-        logging.root.setLevel(logging.ERROR)
-    elif verbose:
-        logging.root.setLevel(logging.DEBUG)
-
-
-def get_default_extension_dir_path() -> Path:
-    candidates = [
-        Path("extension"),
-        Path("src/extension"),
-    ]
-
-    # Find the first suitable candidate
-    for candidate in candidates:
-        # Check the candidate directory exists
-        if candidate.exists() and candidate.is_dir():
-            return candidate
-        continue
-
-    # Nothing suitable was found
-    logger.error("No extension directory found")
-    exit(1)
-
-
-@app.command(
-    help=(
-        "Enable VS Code to validate YAML schema of individual parts "
-        "by mapping each of them to proper JSON schema in local "
-        "VS Code settings file."
-    ),
-    name="map",
-)
-def map_(
-    json: json_option = Path("schema"),
-    settings: settings_option = Path(".vscode/settings.json"),
-    yaml: yaml_option = None,
-    cwd: cwd_option = Path("."),
+@app.command(help="Map JSON schema to YAML files in VS Code settings")
+def map(
+    settings: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to the VS Code settings.json file.",
+        ),
+    ] = Path(".vscode/settings.json"),
+    schema: Annotated[
+        Path,
+        typer.Option(
+            "--json",
+            "-j",
+            help="Path to directory with valid extensions JSON schema files.",
+            exists=True,
+            readable=True,
+            dir_okay=True,
+            file_okay=False,
+        ),
+    ] = Path("schema"),
+    source: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--source",
+            "-s",
+            help=(
+                "Path to directory where YAML source files will be stored. "
+                "[dim]\\[default: extension/src or src/extension/src][/dim]"
+            ),
+            show_default=False,
+            dir_okay=True,
+            file_okay=False,
+        )
+    ] = None,
+    root: Annotated[
+        Path,
+        typer.Option(
+            "--root",
+            "-r",
+            help="Root directory relative to which the paths in settings file will be mapped.",
+            dir_okay=True,
+            file_okay=False,
+        )
+    ] = Path("."),
+    extension_yaml: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--extension-yaml",
+            "-e",
+            help=(
+                "Path to output extension.yaml file. "
+                "[dim]\\[default: extension/extension.yaml or src/extension/extension.yaml][/dim]"
+            ),
+            show_default=False,
+            dir_okay=False,
+            file_okay=True,
+        )
+    ] = None,
     verbose: verbose_option = False,
     quiet: quiet_option = False,
 ):
     """Map YAML files to JSON schema."""
-    adjust_logging(verbose, quiet)
-
-    logger.info("Mapping YAML files to JSON schema...")
-    logger.debug(f"Current working directory: {cwd}")
-
-    json_schemas_dir_path = json
-    if not json_schemas_dir_path.is_absolute():
-        json_schemas_dir_path = cwd / json_schemas_dir_path
-    logger.debug(f"JSON schema files directory: {json}")
-
-    vscode_settings_json_file_path = settings
-    if not vscode_settings_json_file_path.is_absolute():
-        vscode_settings_json_file_path = cwd / vscode_settings_json_file_path
+    adjust_root_logger(verbose, quiet)
+    logger.debug(f"JSON schema files directory: {schema}")
     logger.debug(f"VS Code settings.json file: {settings}")
+    logger.debug(f"Root dir: {root}")
 
-    extension_yaml_dir_path = yaml or get_default_extension_dir_path()
-    if not extension_yaml_dir_path.is_absolute():
-        extension_yaml_dir_path = cwd / extension_yaml_dir_path
-    logger.debug(f"Extension YAML files directory: {yaml}")
+    source = source or get_default_extension_source_dir_path()
+    logger.debug(f"Extension YAML source files directory: {source}")
 
-    update_vscode_settings_json(
-        json_schemas_dir_path,
-        vscode_settings_json_file_path,
-        extension_yaml_dir_path,
-    )
+    extension_yaml = extension_yaml or get_default_extension_dir_path() / "extension.yaml"
+    logger.debug(f"extension.yaml file: {extension_yaml}")
 
+    # Make sure schemas directory contains extension.schema.json
+    validate_json_schemas_dir(schema)
 
-@app.command(help="Ensure the folder structure to store YAML files is in place.")
-def structure(
-    datasource_name: Annotated[str, typer.Argument(..., help="The name of the datasource.")],
-    yaml: yaml_option = None,
-    cwd: cwd_option = Path("."),
-    verbose: verbose_option = False,
-    quiet: quiet_option = False,
-):
-    """Ensure the folder structure is in place."""
-    adjust_logging(verbose, quiet)
+    # Make schema more granular by extracting embedded definitions into
+    # separate schema files.
+    extract_definitions_into_standalone_schemas(schema)
 
-    logger.info("Ensuring the folder structure is in place...")
+    # Update yaml.schemas mapping in settings.json
+    vscode_settings = read_vscode_settings_json_file(settings)
 
-    extension_yaml_dir_path = yaml or get_default_extension_dir_path()
-    if not extension_yaml_dir_path.is_absolute():
-        extension_yaml_dir_path = cwd / extension_yaml_dir_path
-    logger.debug(f"Extension YAML files directory: {extension_yaml_dir_path}")
+    # Delete existing extension.yaml mapping
+    mapping: dict = vscode_settings.get("yaml.schemas", {})
+    for k, v in mapping.items():
+        if "extension.yaml" in str(v):
+            del mapping[k]
+            break
+    
+    # Update the mapping
+    mapping_update = map_schema_to_sources(schema, source, root, extension_yaml)
+    mapping.update(mapping_update)
 
-    ensure_folder_structure(extension_yaml_dir_path, datasource_name)
+    # Write the updated settings.json file
+    vscode_settings["yaml.schemas"] = mapping
+    with open(settings, "w") as f:
+        vscode_settings_file_text = json.dumps(vscode_settings, indent=2)
+        f.write(vscode_settings_file_text)
+        logger.info(f"Updated {settings} with new YAML schema mappings.")
 
 
 @app.command(help="Split central YAML file into parts.")
 def split(
-    yaml: yaml_option = None,
-    cwd: cwd_option = Path("."),
+    source: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--source",
+            "-s",
+            help=(
+                "Path to source extension.yaml file. "
+                "[dim]\\[default: extension/extension.yaml or src/extension/extension.yaml][/dim]"
+            ),
+            show_default=False,
+            dir_okay=False,
+            file_okay=True,
+            exists=True,
+            readable=True,
+        )
+    ] = None,
+    target: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--target",
+            "-t",
+            help=(
+                "Path to directory where split YAML source files will be stored. "
+                "[dim]\\[default: extension/src or src/extension/src][/dim]"
+            ),
+            show_default=False,
+            dir_okay=True,
+            file_okay=False,
+            exists=True,
+            writable=True,
+        )
+    ] = None,
+    force: force_option = False,
     verbose: verbose_option = False,
     quiet: quiet_option = False,
 ):
-    """Decompose the central YAML file into parts."""
-    adjust_logging(verbose, quiet)
+    adjust_root_logger(verbose, quiet)
 
-    logger.info("Decomposing the central YAML file into parts...")
+    source = source or get_default_extension_dir_path() / "extension.yaml"
+    logger.debug(f"Source file: {source}")
 
-    extension_yaml_dir_path = yaml or get_default_extension_dir_path()
-    if not extension_yaml_dir_path.is_absolute():
-        extension_yaml_dir_path = cwd / extension_yaml_dir_path
-    logger.debug(f"Extension YAML files directory: {yaml}")
+    target = target or get_default_extension_source_dir_path()
+    logger.debug(f"Target directory: {target}")
 
-    split_yaml(extension_yaml_dir_path)
+    split_parts = split_yaml(source, target)
+
+    for path, part in split_parts.items():
+        if is_manually_created(path) and not force:
+            logger.info(f"(Skipping) Part: {path}")
+        else:
+            write_file_with_generated_comment(path, part)
+            logger.info(f"Part written: {path}")
 
 
 @app.command(help="Join YAML files into a single file.")
 def join(
-    yaml: yaml_option = None,
-    output: output_option = None,
+    source: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--source",
+            "-s",
+            help=(
+                "Path to directory where split YAML source files are stored. "
+                "[dim]\\[default: extension/src or src/extension/src][/dim]"
+            ),
+            show_default=False,
+            dir_okay=True,
+            file_okay=False,
+            exists=True,
+            readable=True,
+        )
+    ] = None,
+    target: Annotated[
+        Optional[Path],
+        typer.Option(
+            "--target",
+            "-t",
+            help=(
+                "Path for target extension.yaml file that will be assembled from parts. "
+                "[dim]\\[default: extension/extension.yaml or src/extension/extension.yaml][/dim]"
+            ),
+            show_default=False,
+            dir_okay=False,
+            file_okay=True,
+        )
+    ] = None,
     force: force_option = False,
-    cwd: cwd_option = Path("."),
     verbose: verbose_option = False,
     quiet: quiet_option = False,
+    debug: debug_option = False,
 ):
-    """Run the application."""
-    adjust_logging(verbose, quiet)
+    adjust_root_logger(verbose, quiet)
 
-    extension_yaml_dir_path = yaml or get_default_extension_dir_path()
-    if not extension_yaml_dir_path.is_absolute():
-        extension_yaml_dir_path = cwd / extension_yaml_dir_path
-    logger.debug(f"Extension YAML files directory: {yaml}")
+    source = source or get_default_extension_source_dir_path()
+    logger.debug(f"Source files directory: {source}")
 
-    output_file_path = output or extension_yaml_dir_path / "extension.yaml"
-    if not output_file_path.is_absolute():
-        output_file_path = cwd / output_file_path
-    logger.debug(f"Output file: {output}")
+    extension = assemble_recursively(source, debug=debug)
 
-    join_yaml(extension_yaml_dir_path, output_file_path, force)
+    target = target or get_default_extension_dir_path() / "extension.yaml"
+    logger.debug(f"Target file: {target}")
+
+    # Check if the target file exists and was created manually
+    if is_manually_created(target) and not force:
+        logger.error(f"The {target} file was created manually. Use --force to overwrite it.")
+        exit(2)
+
+    # Remove comments
+    remove_yaml_comments(extension)
+
+    # Write to output file
+    write_file_with_generated_comment(target, extension)
+
+    if debug:
+        print(extension)
+
+
+def run():
+    app.command(name="j", hidden=True)(join)
+    app.command(name="s", hidden=True)(split)
+    app()

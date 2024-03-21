@@ -97,7 +97,7 @@ def map(
             "-s",
             help=(
                 "Path to directory where YAML source files will be stored. "
-                "[dim]\\[default: parts or src/parts][/dim]"
+                "[dim]\\[default: source or src/source][/dim]"
             ),
             show_default=False,
             dir_okay=True,
@@ -197,7 +197,7 @@ def split(
             "-t",
             help=(
                 "Path to directory where split YAML source files will be stored. "
-                "[dim]\\[default: parts or src/parts][/dim]"
+                "[dim]\\[default: source or src/source][/dim]"
             ),
             show_default=False,
             dir_okay=True,
@@ -237,7 +237,7 @@ def join(
             "-s",
             help=(
                 "Path to directory where split YAML source files are stored. "
-                "[dim]\\[default: parts or src/parts][/dim]"
+                "[dim]\\[default: csource or src/source][/dim]"
             ),
             show_default=False,
             dir_okay=True,

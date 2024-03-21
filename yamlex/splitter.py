@@ -143,7 +143,7 @@ def extract_datasource(
             # individual files.
             else:
                 group_file_name = sanitize_file_stem(group_name)
-                group_file_path = group_dir_path / f"-{group_file_name}.yaml"
+                group_file_path = datasource_dir_path / f"-{group_file_name}.yaml"
                 paths_to_write[group_file_path] = group
                 logger.info(f"Group extracted: {group_file_path}")
 

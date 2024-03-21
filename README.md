@@ -56,7 +56,7 @@ $ yamlex join --help
                                                                                        
 ╭─ Options ───────────────────────────────────────────────────────────────────────────╮
 │ --source   -s      DIRECTORY  Path to directory where split YAML source files are   │
-│                               stored. [default: parts or src/parts]                 │
+│                               stored. [default: source or src/source]                 │
 │ --target   -t      FILE       Path for target extension.yaml file that will be      │
 │                               assembled from parts. [default:                       │
 │                               extension/extension.yaml or                           │
@@ -162,7 +162,7 @@ $ yamlex map --help
 │                                      schema files.                                  │
 │                                      [default: schema]                              │
 │ --source          -s      DIRECTORY  Path to directory where YAML source files will │
-│                                      be stored. [default: parts or src/parts]       │
+│                                      be stored. [default: source or src/source]       │
 │ --root            -r      DIRECTORY  Root directory relative to which the paths in  │
 │                                      settings file will be mapped.                  │
 │                                      [default: .]                                   │
@@ -203,7 +203,7 @@ $ yamlex split --help
 │                               extension/extension.yaml or                           │
 │                               src/extension/extension.yaml]                         │
 │ --target   -t      DIRECTORY  Path to directory where split YAML source files will  │
-│                               be stored. [default: parts or src/parts]              │
+│                               be stored. [default: source or src/source]              │
 │ --force    -f                 Overwrite the files even if they were created         │
 │                               manually.                                             │
 │ --verbose                     Enable verbose output.                                │

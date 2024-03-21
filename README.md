@@ -48,6 +48,12 @@ $ yamlex j
 # More options
 $ yamlex join --source extension/src --target extension/extension.yaml --force
 
+# Create "dev" version of extension.yaml with 'custom:' prefix in its name
+$ yamlex j --dev
+
+# Join yaml and bump version in version.properties before assembling final file
+$ yamles j --bump
+
 # Help message
 $ yamlex join --help
  Usage: yamlex join [OPTIONS]                                                          

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Union
 
 import ruamel.yaml
+from ruamel.yaml.scalarstring import FoldedScalarString
 
 
 logger = logging.getLogger(__name__)
@@ -15,12 +16,16 @@ parser = ruamel.yaml.YAML()
 # - We start to rebuild from the same level where extension.yaml is. Loop:
 
 
-def assemble_recursively(dir_path: Path, debug: bool = False) -> Union[dict, list]:
+def assemble_recursively(
+    dir_path: Path,
+    non_yaml_files_as_multiline_string: bool = True,
+    debug: bool = False,
+) -> Union[dict, list]:
     # List all files
     all_paths = [p for p in dir_path.glob("*") if not p.is_symlink()]
     all_dirs: list[Path] = []
     all_yamls: dict[str, Path] = {}
-    other_files: dict[str, Path] = {}
+    non_yaml_files: dict[str, Path] = {}
     for p in all_paths:
         if p.is_dir():
             all_dirs.append(p)
@@ -28,7 +33,7 @@ def assemble_recursively(dir_path: Path, debug: bool = False) -> Union[dict, lis
             if p.suffix in (".yaml", ".yml"):
                 all_yamls[p.stem] = p
             else:
-                other_files[p.stem] = p
+                non_yaml_files[p.stem] = p
 
     # Figure out if the current folder is an array
     is_array = any([p for p in all_paths if p.name.startswith("-")])
@@ -62,14 +67,17 @@ def assemble_recursively(dir_path: Path, debug: bool = False) -> Union[dict, lis
 
     # Load data from the rest of the files.
     # Example: query.sql file containing a SQL query
-    for other_file_name, other_file_path in other_files.items():
-        with open(other_file_path, "r") as other_file:
-            other_file_content = other_file.read()
+    for non_yaml_file_name, non_yaml_file_path in non_yaml_files.items():
+        with open(non_yaml_file_path, "r") as non_yaml_file:
+            non_yaml_file_content = non_yaml_file.read()
+            non_yaml_node: str | FoldedScalarString = non_yaml_file_content
+            if non_yaml_files_as_multiline_string:
+                non_yaml_node = FoldedScalarString(non_yaml_file_content)
 
             if is_array:
-                data.append(other_file_content)
+                data.append(non_yaml_node)
             else:
-                data[other_file_name] = other_file_content 
+                data[non_yaml_file_name] = non_yaml_node
 
     # Recursively traverse directories.
     # Directorie's name is considered to be the name of the nested field,

@@ -274,8 +274,16 @@ def join(
             "--bump",
             "-b",
             help="Bump version in the version.properties file.",
-        )
+        ),
     ] = False,
+    multiline_strings: Annotated[
+        bool,
+        typer.Option(
+            "--multiline",
+            "-m",
+            help="Non YAML files are embedded as multiline strings.",
+        ),
+    ] = True,
     version: Annotated[
         Optional[str],
         typer.Option(
@@ -327,7 +335,11 @@ def join(
     source = source or get_default_extension_source_dir_path()
     logger.debug(f"Source files directory: {source}")
 
-    extension = assemble_recursively(source, debug=debug)
+    extension = assemble_recursively(
+        source,
+        non_yaml_files_as_multiline_string=multiline_strings,
+        debug=debug,
+    )
 
     if dev:
         if not version:

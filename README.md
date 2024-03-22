@@ -61,19 +61,21 @@ $ yamlex join --help
  Join YAML files into a single file.                                                   
                                                                                        
 ╭─ Options ───────────────────────────────────────────────────────────────────────────╮
-│ --source   -s      DIRECTORY  Path to directory where split YAML source files are   │
-│                               stored. [default: source or src/source]                 │
-│ --target   -t      FILE       Path for target extension.yaml file that will be      │
+│ --source     -s    DIRECTORY  Path to directory where split YAML source files are   │
+│                               stored. [default: source or src/source]               │
+│ --target     -t    FILE       Path for target extension.yaml file that will be      │
 │                               assembled from parts. [default:                       │
 │                               extension/extension.yaml or                           │
 │                               src/extension/extension.yaml]                         │
-│ --dev      -d                 Prefix extension name with 'custom:' and use explicit │
+│ --dev        -d               Prefix extension name with 'custom:' and use explicit │
 │                               version.                                              │
-│ --bump     -b                 Bump version in the version.properties file.          │
-│ --version  -v      TEXT       Explicitly set the version to use during assembly or  │
+│ --bump       -b               Bump version in the version.properties file.          │
+│ --multiline  -m               Non YAML files are embedded as multiline strings.     │
+│                               [default: True]                                       │
+│ --version    -v    TEXT       Explicitly set the version to use during assembly or  │
 │                               bump process.                                         │
 │                               [default: None]                                       │
-│ --force    -f                 Overwrite the files even if they were created         │
+│ --force      -f               Overwrite the files even if they were created         │
 │                               manually.                                             │
 │ --verbose                     Enable verbose output.                                │
 │ --quiet                       Disable any informational output. Only errors.        │
@@ -168,7 +170,7 @@ $ yamlex map --help
 │                                      schema files.                                  │
 │                                      [default: schema]                              │
 │ --source          -s      DIRECTORY  Path to directory where YAML source files will │
-│                                      be stored. [default: source or src/source]       │
+│                                      be stored. [default: source or src/source]     │
 │ --root            -r      DIRECTORY  Root directory relative to which the paths in  │
 │                                      settings file will be mapped.                  │
 │                                      [default: .]                                   │
@@ -209,7 +211,7 @@ $ yamlex split --help
 │                               extension/extension.yaml or                           │
 │                               src/extension/extension.yaml]                         │
 │ --target   -t      DIRECTORY  Path to directory where split YAML source files will  │
-│                               be stored. [default: source or src/source]              │
+│                               be stored. [default: source or src/source]            │
 │ --force    -f                 Overwrite the files even if they were created         │
 │                               manually.                                             │
 │ --verbose                     Enable verbose output.                                │

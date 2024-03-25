@@ -24,8 +24,10 @@ from yamlex.util import (
     get_default_extension_source_dir_path,
     is_manually_created,
     write_file,
-    read_version,
-    write_version,
+    read_version_properties,
+    write_version_properties,
+    parse_version,
+    bump_version,
 )
 
 
@@ -308,39 +310,6 @@ def join(
     debug: debug_option = False,
 ):
     adjust_root_logger(verbose, quiet)
-    
-    # Bump version, if requested
-    if bump:
-        current_version = read_version("version.properties")
-        logger.info(f"Current version: {current_version}")
-        # If new explicit version is not specified, then
-        # parse current version and bump it.
-        if not version:
-            version_parts = current_version.split(".")
-            part_int: int | None = None
-            part_idx: int | None = None
-            for i, part in enumerate(reversed(version_parts)):
-                try:
-                    part_int = int(part)
-                    part_idx = len(version_parts) - 1 - i
-                    break
-                except:
-                    continue
-            if not part_int:
-                logger.error("Could not find integer part in version to bump")
-                exit(1)
-
-            part_int += 1
-            version = ""
-            for i, part in enumerate(version_parts):
-                append = part
-                if i == part_idx:
-                    append = part_int
-                version += f"{append}."
-            version = version.rstrip(".")
-
-        write_version("version.properties", version)
-        logger.info(f"Bumped version to {version}")
 
     source = source or get_default_extension_source_dir_path()
     logger.debug(f"Source files directory: {source}")
@@ -351,16 +320,41 @@ def join(
         debug=debug,
     )
 
-    if dev:
-        if not version:
-            version = read_version("version.properties")
+    # Figure out the current version
+    yaml_version = extension.get("version")
+    is_read_from_version_properties = False
+    # If new version is not explicitly specified
+    if not version:
+        current_version = parse_version(yaml_version)
+        if not current_version:
+            current_version = read_version_properties("version.properties")
+            is_read_from_version_properties = True
+        logger.info(f"Current version: {current_version}")
 
+    
+    # Bump version, if requested
+    if bump:
+        # If new version is not explicitly specified
+        if not version:
+            # If new explicit version is not specified, then
+            # parse current version and bump it.
+            version = bump_version(current_version)
+
+        if is_read_from_version_properties:
+            write_version_properties("version.properties", version)
+        logger.info(f"Bumped version to {version}")
+
+    if dev:
         name = extension.get("name")
         if isinstance(name, str) and not name.startswith("custom:"):
             name = f"custom:{name}"
             extension["name"] = name
             logger.info(f"Set extension name to: {name}")
 
+    # Update version, if new explicit version was specified
+    if not version:
+        version = current_version
+    if yaml_version != version:
         extension["version"] = version
         logger.info(f"Set extension version to: {version}")
 

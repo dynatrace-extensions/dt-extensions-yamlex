@@ -83,7 +83,7 @@ def write_file(
         f.write(text)
 
 
-def read_version(path: Path, default: Optional[str] = None) -> str:
+def read_version_properties(path: Path, default: Optional[str] = None) -> str:
     try:
         with open(path, "r") as f:
             content = f.read()
@@ -96,7 +96,7 @@ def read_version(path: Path, default: Optional[str] = None) -> str:
         exit(1)
 
 
-def write_version(path: Path, version: str) -> None:
+def write_version_properties(path: Path, version: str) -> None:
     try:
         with open(path, "r") as rf:
             lines = rf.readlines()
@@ -111,3 +111,37 @@ def write_version(path: Path, version: str) -> None:
     except Exception as e:
         logger.error(f"Failed to write to {path}: {e}")
         exit(1)
+
+
+def parse_version(version: str) -> Optional[str]:
+    regex = r"^(0|[1-9][0-9]{0,3})(\.(0|[1-9][0-9]{0,3})){0,2}$"
+    match_ = re.search(regex, version)
+    if not match_:
+        return None
+    return match_.group()
+
+
+def bump_version(version: str) -> str:
+    version_parts = version.split(".")
+    part_int: int | None = None
+    part_idx: int | None = None
+    for i, part in enumerate(reversed(version_parts)):
+        try:
+            part_int = int(part)
+            part_idx = len(version_parts) - 1 - i
+            break
+        except:
+            continue
+    if part_int is None:
+        logger.error("Could not find integer part in version")
+        exit(1)
+
+    part_int += 1
+    result = ""
+    for i, part in enumerate(version_parts):
+        append = part
+        if i == part_idx:
+            append = part_int
+        result += f"{append}."
+    result = result.rstrip(".")
+    return result

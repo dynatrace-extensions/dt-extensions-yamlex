@@ -28,17 +28,19 @@ from yamlex.util import (
     write_version_properties,
     parse_version,
     bump_version,
+    get_version,
 )
 
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
-
 logger = logging.getLogger(__name__)
+
+
 app = typer.Typer(
     name="yamlex",
     rich_markup_mode="rich",
-    no_args_is_help=True,
     add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 
 force_option = Annotated[
@@ -76,7 +78,16 @@ debug_option = Annotated[
     typer.Option(
         "--debug",
         hidden=True,
-    )
+    ),
+]
+version_option = Annotated[
+    Optional[bool],
+    typer.Option(
+        "--version",
+        "-v",
+        show_default=False,
+        is_eager=True,
+    ),
 ]
 
 
@@ -140,7 +151,7 @@ def map(
     ] = None,
     verbose: verbose_option = False,
     quiet: quiet_option = False,
-):
+) -> None:
     """Map YAML files to JSON schema."""
     adjust_root_logger(verbose, quiet)
     logger.debug(f"JSON schema files directory: {schema}")
@@ -220,7 +231,7 @@ def split(
     force: force_option = False,
     verbose: verbose_option = False,
     quiet: quiet_option = False,
-):
+) -> None:
     adjust_root_logger(verbose, quiet)
 
     source = source or get_default_extension_dir_path() / "extension.yaml"
@@ -308,7 +319,7 @@ def join(
     verbose: verbose_option = False,
     quiet: quiet_option = False,
     debug: debug_option = False,
-):
+) -> None:
     adjust_root_logger(verbose, quiet)
 
     source = source or get_default_extension_source_dir_path()
@@ -376,7 +387,25 @@ def join(
         print(extension)
 
 
-def run():
+@app.callback(
+    invoke_without_command=True,
+    no_args_is_help=True,
+)
+def callback(
+    ctx: typer.Context,
+    version: version_option = None,
+) -> None:
+    if version:
+        prog_version = get_version()
+        print(prog_version)
+
+        raise typer.Exit()
+    
+    if ctx.invoked_subcommand:
+        return
+
+
+def run() -> None:
     app.command(name="j", hidden=True)(join)
     app.command(name="s", hidden=True)(split)
     app()

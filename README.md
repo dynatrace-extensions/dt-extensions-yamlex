@@ -36,7 +36,7 @@ pip install yamlex
 
 ## Usage
 
-```shell
+```
 $ yamlex --help
                                                                                 
  Usage: yamlex [OPTIONS] COMMAND [ARGS]...                                      
@@ -52,6 +52,25 @@ $ yamlex --help
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```
+
+**TL;DR:**
+
+When you start:
+
+1. Go into the directory with your extension.
+1. Run `yamlex split` to split your `extension.yaml` into individual parts.
+1. Back up the original `extension.yaml` by renaming it to `extension.yaml.bckp` or something.
+1. Run `yamlex join` to assemble `extension.yaml` back from split parts.
+
+*Good!*
+
+As you continue:
+
+1. Modify whichever part you want.
+1. And build the main `extension.yaml` file again using `yamlex join`.
+1. Repeat last two steps as you continue developing the extension.
+
+*Congratulations! You rock!*
 
 ### Join
 
@@ -76,7 +95,7 @@ $ yamlex j --dev
 
 **Help**
 
-```shell
+```
 $ yamlex join --help
                                                                                 
  Usage: yamlex join [OPTIONS]                                                   
@@ -214,7 +233,7 @@ $ yamlex map .vscode/settings.json --json schema/ --source extension/src --root 
 
 **Help**
 
-```shell
+```
 $ yamlex map --help
                                                                                 
  Usage: yamlex map [OPTIONS] [SETTINGS]                                         
@@ -271,7 +290,7 @@ $ yamlex split --source extension/extension.yaml --target extension/src
 
 **Help**
 
-```shell
+```
 $ yamlex split --help
                                                                                 
  Usage: yamlex split [OPTIONS]                                                  

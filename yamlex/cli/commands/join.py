@@ -114,6 +114,9 @@ def join(
       considered to be a grouper folder and yamlex behaves as if that folder
       does not add any additional level of nesting at all.
 
+    - If a folder or a file starts with the exclamation mark symbol "!", then
+      it will be ignored, as if it doesn't exist at all.
+
     [b]Full example:[/b]
 
     [i]Source folder structure:[/i]          [i]Content of files on the left:[/i]

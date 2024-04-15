@@ -36,7 +36,6 @@ def map_schema_to_sources(
 
     mapping[(schema / "extension.metrics.schema.json").as_posix()] = [
         (sources / "metrics" / "*.yaml").as_posix(),
-        (sources / "metrics" / "*" / "index.yaml").as_posix(),
         (sources / "metrics" / "+*" / "*.yaml").as_posix(),
     ]
 

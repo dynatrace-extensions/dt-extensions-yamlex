@@ -1,0 +1,129 @@
+# Yamlex
+
+<p>
+  <a href="https://pypi.org/pypi/yamlex"><img alt="Package version" src="https://img.shields.io/pypi/v/yamlex?logo=python&logoColor=white&color=blue"></a>
+  <a href="https://pypi.org/pypi/yamlex"><img alt="Supported python versions" src="https://img.shields.io/pypi/pyversions/yamlex?logo=python&logoColor=white"></a>
+</p>
+
+The `yamlex` command-line tool is here to assist you in development of
+an oversized `extension.yaml`, when working with Dynatrace 2.0 Extensions.
+
+It can `split` your original `extension.yaml` into carefully structured 
+parts, which are easier to work with. It can then assembe the
+`extension.yaml` back from the individual parts using the `join` command.
+
+The Extension Framework only cares about the final assembled
+`extension.yaml`. Any extension would be considered invalid without it.
+However, it is recommended to commit both the individual parts and
+the assembled `extension.yaml` file into the code repository of your
+extension, because individual parts are your "code" and the assembled 
+file is your artifact. 
+
+With `yamlex`, your development workflow changes in such a way that
+you only modify the individual parts and never really touch the artificial 
+`extension.yaml`. Before you build the extension, you run `yamlex join`
+to assemble the parts into the main file.
+
+*Important: you don't need `yamlex` to develop Dynatrace Extensions.
+It's only here to simplify the work when it comes to really
+big extensions.*
+
+## Installation
+
+```shell
+pip install yamlex
+```
+
+## Usage
+
+```shell
+$ yamlex --help
+{% include "yamlex_help.txt" -%}
+```
+
+### Join
+
+Assemble `extension.yaml` from parts
+
+**Usage**
+
+```shell
+# Normal call
+$ yamlex join
+
+# Shorthand
+$ yamlex j
+
+# More options
+$ yamlex join --source extension/src --target extension/extension.yaml --force
+
+# Generate the "dev" version of the extension with 'custom:' prefix in its name
+# and the version explicitly specified in the generated extension.yaml
+$ yamlex j --dev
+```
+
+**Help**
+
+```shell
+$ yamlex join --help
+{% include "yamlex_join_help.txt" -%}
+```
+
+### (optional) `map`
+
+Enable YAML validation and auto-completion.
+
+By invoking `yamlex map` you can map the extension JSON schema files to the
+future YAML parts of the split  `extension.yaml`.
+This will ensure proper validation and auto-completion 
+for each and every part and not just for the `extension.yaml`.
+
+Before you execute the `map` command, make sure relevant JSON schema
+files for extensions are downloaded and are placed in the right folder.
+By default, `yamlex` expects the relevant schema folder to be placed in
+the current directory under the `schema/` name.
+
+**Usage**
+
+```shell
+# Normal help
+$ yamlex map
+
+# More options
+$ yamlex map .vscode/settings.json --json schema/ --source extension/src --root . --extension-yaml extension/extension.yaml
+```
+
+**Help**
+
+```shell
+$ yamlex map --help
+{% include "yamlex_map_help.txt" -%}
+```
+
+### (optional) `split`
+
+Split the `extension.yaml` in parts.
+
+This command will split the `extension.yaml` into individual components.
+It is useful when you only just start using `yamlex` with an existing
+extension.
+
+**Usage**
+
+```shell
+# Normal syntax
+$ yamlex split
+
+# Shorthand
+$ yamlex s
+
+# More options
+$ yamlex split --source extension/extension.yaml --target extension/src
+```
+
+**Help**
+
+```shell
+$ yamlex split --help
+{% include "yamlex_split_help.txt" -%}
+```

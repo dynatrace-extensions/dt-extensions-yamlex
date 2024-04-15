@@ -1,3 +1,6 @@
+# Doc building
+docs/*.txt
+
 # Thumbnails
 .DS_Store
 Thumbs.db

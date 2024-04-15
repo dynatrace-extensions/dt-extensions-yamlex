@@ -6,10 +6,6 @@ from typing import Union
 import ruamel.yaml
 
 
-# Splitting is only here to do the first split.
-# It attempts to do a split that makes sense 
-
-
 logger = logging.getLogger(__name__)
 
 DATASOURCE_NAMES = [

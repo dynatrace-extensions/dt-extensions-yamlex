@@ -18,11 +18,14 @@ parser = ruamel.yaml.YAML()
 
 def assemble_recursively(
     dir_path: Path,
-    non_yaml_files_as_multiline_string: bool = True,
+    non_yaml_files_as_scalars: bool = True,
     debug: bool = False,
 ) -> Union[dict, list]:
     # List all files
-    all_paths = [p for p in dir_path.glob("*") if not p.is_symlink()]
+    all_paths = [
+        p for p in dir_path.glob("*")
+        if not (p.is_symlink() or p.name.startswith("!"))
+    ]
     all_dirs: list[Path] = []
     all_yamls: dict[str, Path] = {}
     non_yaml_files: dict[str, Path] = {}
@@ -71,7 +74,7 @@ def assemble_recursively(
         with open(non_yaml_file_path, "r") as non_yaml_file:
             non_yaml_file_content = non_yaml_file.read()
             non_yaml_node: str | FoldedScalarString = non_yaml_file_content
-            if non_yaml_files_as_multiline_string:
+            if non_yaml_files_as_scalars:
                 non_yaml_node = FoldedScalarString(non_yaml_file_content)
 
             if is_array:

@@ -38,22 +38,19 @@ def assemble_recursively(
             else:
                 non_yaml_files[p.stem] = p
 
-    # Figure out if the current folder is an array
-    is_array = any([p for p in all_paths if p.name.startswith("-")])
-    logger.debug(f"Assembling {'(array)' if is_array else ''} level: {dir_path}")
+    logger.debug(f"Assembling level: {dir_path}")
 
     # All parsed data from index file, other yaml files, and dirs
     # will be collected into a single data object.
-    data: Union[dict, list] = [] if is_array else {}
+    data: dict = {}
     
     # Load data from the index file, if it exists
-    if not is_array:
-        if "index" in all_yamls:
-            index_yaml_file_path = all_yamls.pop("index")
-            with open(index_yaml_file_path, "r") as index_yaml_file:
-                # index_yaml_file_data = yaml.safe_load(index_yaml_file)
-                index_yaml_file_data = parser.load(index_yaml_file)
-                data.update(index_yaml_file_data)
+    if "index" in all_yamls:
+        index_yaml_file_path = all_yamls.pop("index")
+        with open(index_yaml_file_path, "r") as index_yaml_file:
+            # index_yaml_file_data = yaml.safe_load(index_yaml_file)
+            index_yaml_file_data = parser.load(index_yaml_file)
+            data.update(index_yaml_file_data)
 
     # Load data from the rest of the YAML files.
     # File's name is considered to be the name of the nested field,
@@ -62,11 +59,7 @@ def assemble_recursively(
         with open(yaml_file_path, "r") as yaml_file:
             # yaml_file_data = yaml.safe_load(yaml_file)
             yaml_file_data = parser.load(yaml_file)
-
-            if is_array:
-                data.append(yaml_file_data)
-            else:
-                data[yaml_file_name] = yaml_file_data
+            data[yaml_file_name] = yaml_file_data
 
     # Load data from the rest of the files.
     # Example: query.sql file containing a SQL query
@@ -76,36 +69,51 @@ def assemble_recursively(
             non_yaml_node: str | FoldedScalarString = non_yaml_file_content
             if non_yaml_files_as_scalars:
                 non_yaml_node = FoldedScalarString(non_yaml_file_content)
+            data[non_yaml_file_name] = non_yaml_node
 
-            if is_array:
-                data.append(non_yaml_node)
-            else:
-                data[non_yaml_file_name] = non_yaml_node
+    # Figure out if the current folder is an array because some paths
+    # within it start with the dash '-' prefix
+    is_current_dir_array = any([p for p in all_paths if p.name.startswith("-")])
+    logger.debug(f"Current dir contains items starting with -: {dir_path}")
+
+    data_if_current_dir_is_array = list(data.values())
+    data_if_current_dir_is_dict = data
 
     # Recursively traverse directories.
-    # Directorie's name is considered to be the name of the nested field,
+    # Directory's name is considered to be the name of the nested field,
     # if it's not an array. Otherwise, directory name is ignored.
-    for dir in all_dirs:
-        dir_data = assemble_recursively(dir, debug=debug)
+    for sub_dir in all_dirs:
+        sub_dir_data = assemble_recursively(sub_dir, debug=debug)
 
         # If directorie's name starts with a '+', then consider it a grouper
         # It doesn't represent a field. Consider data within it to be on the
         # same level as the current folder.
-        # Does not apply if the current folder is considered to be an array.
-        is_grouper = dir.name.startswith("+")
+        is_sub_dir_grouper = sub_dir.name.startswith("+")
+        is_sub_dir_array = isinstance(sub_dir_data, list)
 
-        if is_array:
-            if is_grouper:
-                data.extend(dir_data)
+        # If the current directory has a grouper sub directory, which in turn, is an array,
+        # then the current directory is automatically considered to be an array.
+        # This is because, grouping sub directories are meta-directories. It's as if they do not exist.
+        # So having a grouper sub directory which is an array (because it has items that start with -)
+        # means that it's actually the current directory which is an array. We just didn't know
+        # until we actually traversed the sub directories of the current directory.
+        is_current_dir_array = is_current_dir_array or (is_sub_dir_array and is_sub_dir_grouper)
+
+        if is_sub_dir_grouper:
+            if is_sub_dir_array:
+                data_if_current_dir_is_array.extend(sub_dir_data)
             else:
-                data.append(dir_data)
+                data_if_current_dir_is_dict.update(sub_dir_data)
         else:
-            if is_grouper:
-                data.update(dir_data)
-            else:
-                data[dir.name] = dir_data
+            data_if_current_dir_is_array.append(sub_dir_data)
+            data_if_current_dir_is_dict[sub_dir.name] = sub_dir_data
 
-    return data
+    logger.debug(f"Returning {'(array) ' if is_current_dir_array else ''}{dir_path}")
+
+    if is_current_dir_array:
+        return data_if_current_dir_is_array
+    else:
+        return data_if_current_dir_is_dict
 
 
 def remove_yaml_comments(data: Union[dict, list]):

@@ -106,7 +106,17 @@ def map_schema_to_sources(
     # ------------------------------
 
     mapping[(schema / "extension.screens.schema.json").as_posix()] = [
-        (sources / "screens" / "**/*.yaml").as_posix(),
+        (sources / "screens" / "*.yaml").as_posix(),
+        (sources / "screens" / "*" / "index.yaml").as_posix(),
+    ]
+
+    # Actions
+    mapping[(schema / "screen.action.schema.json").as_posix()] = [
+        (sources / "screens" / "*" / "actions.yaml").as_posix(),
+    ]
+    mapping[(schema / "screen.actions.object.schema.json").as_posix()] = [
+        (sources / "screens" / "*" / "actions" / "index.yaml").as_posix(),
+        (sources / "screens" / "*" / "actions" / "-*.yaml").as_posix(),
     ]
 
     return mapping

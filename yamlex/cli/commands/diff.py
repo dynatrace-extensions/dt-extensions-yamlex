@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from deepdiff import DeepDiff
 from typing_extensions import Annotated
 
 from yamlex.api.differ import diff as diff_files
@@ -67,5 +66,9 @@ def diff(
         debug=debug,
     )
 
-    serialized = json.dumps(difference, indent=2)
+    serialized = json.dumps(
+        difference,
+        indent=2,
+        default=str,
+    )
     print(serialized)

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 import ruamel.yaml
+import ruamel.yaml.comments
 from deepdiff import DeepDiff
 
 
@@ -39,6 +40,10 @@ def diff(
         ignore_order=True,
         report_repetition=True,
         verbose_level=2,
+        # ignore_type_in_groups=[
+        #     (ruamel.yaml.comments.CommentedSeq, ruamel.yaml.comments.CommentedMap),
+        # ],
+        # ignore_type_subclasses=True,
     )
 
     return differences

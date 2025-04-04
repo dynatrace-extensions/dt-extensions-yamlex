@@ -46,6 +46,7 @@ $ yamlex --help
 │ --help     -h        Show this message and exit.                             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ diff    Compare source YAML file to target and print the differences.        │
 │ join    Join individual components into a single extension.yaml file.        │
 │ map     Map JSON schema to YAML files in VS Code settings.                   │
 │ split   Split extension.yaml file into individual components.                │
@@ -55,20 +56,20 @@ $ yamlex --help
 
 **TL;DR:**
 
-When you start:
+When you start with an already existing large extension that wasn't split into parts:
 
-1. Go into the directory with your extension.
+1. Go into the directory of your extension.
 1. Run `yamlex split` to split your `extension.yaml` into individual parts.
 1. Back up the original `extension.yaml` by renaming it to `extension.yaml.bckp` or something.
 1. Run `yamlex join` to assemble `extension.yaml` back from split parts.
 
 *Good!*
 
-As you continue:
+When you work with an extension that was already split into parts:
 
 1. Modify whichever part you want.
-1. And build the main `extension.yaml` file again using `yamlex join`.
-1. Repeat last two steps as you continue developing the extension.
+1. Assemble the `extension.yaml` file from parts using `yamlex join`.
+1. Repeat the last two steps as you continue developing the extension.
 
 *Congratulations! You rock!*
 
@@ -91,6 +92,9 @@ $ yamlex join --source extension/src --target extension/extension.yaml --force
 # Generate the "dev" version of the extension with 'custom:' prefix in its name
 # and the version explicitly specified in the generated extension.yaml
 $ yamlex j --dev
+
+# Specify the version of the extension
+$ yamlex j --version 1.0.0
 ```
 
 **Help**
@@ -331,6 +335,39 @@ $ yamlex split --help
 │ --quiet                          Disable any informational output. Only      │
 │                                  errors.                                     │
 │ --help        -h                 Show this message and exit.                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+```
+
+### (optional) `diff`
+
+Compare two YAML files and show the differences.
+
+This is useful when you want to see what changed in the `extension.yaml`
+between two versions of the extension. It can also be used to compare
+the `extension.yaml` with the split parts to see if they are in sync.
+
+**Usage**
+
+```shell
+yamlex diff --source extension/extension.yaml --target extension/src
+```
+
+**Help**
+
+```
+$ yamlex diff --help
+                                                                                
+ Usage: yamlex diff [OPTIONS]                                                   
+                                                                                
+ Compare source YAML file to target and print the differences.                  
+                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --source   -s      FILE  Path to the source YAML file.                       │
+│ --target   -t      FILE  Path to the target extension.yaml.                  │
+│ --verbose                Enable verbose output.                              │
+│ --quiet                  Disable any informational output. Only errors.      │
+│ --help     -h            Show this message and exit.                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```

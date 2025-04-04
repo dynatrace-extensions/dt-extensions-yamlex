@@ -1,8 +1,8 @@
 [tool.poetry]
 authors = ["Vagiz Duseev <vagiz.duseev@dynatrace.com>"]
 description = "Command-line tool to simplify development of Dynatrace Extensions with big YAML"
-documentation = "https://github.com/dynatrace-extensions/dt-extensions-yaml-assembler"
-homepage = "https://github.com/dynatrace-extensions/dt-extensions-yaml-assembler"
+documentation = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
+homepage = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
 keywords = ["dynatrace", "cli", "extensions"]
 license = "Apache-2.0"
 maintainers = ["Vagiz Duseev <vagiz.duseev@dynatrace.com>"]
@@ -21,6 +21,7 @@ typer = "^0.9"
 typing-extensions = "^4"
 ruamel-yaml = "^0.18"
 rich = "^13.7"
+deepdiff = "^8.4.2"
 
 [tool.poetry.group.dev.dependencies]
 black = {version = ">=20", allow-prereleases = true}

@@ -8,6 +8,7 @@ from rich import print
 from yamlex.cli.commands.join import join as join_cmd
 from yamlex.cli.commands.map import map as map_cmd
 from yamlex.cli.commands.split import split as split_cmd
+from yamlex.cli.commands.diff import diff as diff_cmd
 from yamlex.cli.version import get_version
 
 
@@ -53,6 +54,7 @@ def run() -> None:
     app.command(name="map")(map_cmd)
     app.command(name="split")(split_cmd)
     app.command(name="join")(join_cmd)
+    app.command(name="diff")(diff_cmd)
 
     # Declare aliases for popular commands.
     app.command(name="j", hidden=True)(join_cmd)

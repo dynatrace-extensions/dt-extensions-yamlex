@@ -80,14 +80,21 @@ def join(
             show_default=False,
         ),
     ] = None,
-    max_line_length: Annotated[
+    line_length: Annotated[
         Optional[int],
         typer.Option(
-            "--max-line-length",
-            help="Maximum line length for the generated extension.yaml.",
+            "--line-length",
+            help="Maximum line length in the generated extension.yaml.",
             show_default="not limited",
         ),
     ] = None,
+    sort_paths: Annotated[
+        bool,
+        typer.Option(
+            "--sort-paths",
+            help="Sort paths alphabetically when traversing source directory before join.",
+        ),
+    ] = False,
     no_comment: no_comment_flag = False,
     force: force_flag = False,
     verbose: verbose_flag = False,
@@ -184,6 +191,7 @@ def join(
             source,
             non_yaml_files_as_scalars=keep_formating,
             debug=debug,
+            sort_paths=sort_paths,
         )
     except UnicodeDecodeError as e:
         # If any non-text files were caught up in the processing because they
@@ -235,7 +243,7 @@ def join(
         target,
         extension,
         add_comment=should_add_comment,
-        max_line_length=max_line_length,
+        line_length=line_length,
     )
 
     if debug:

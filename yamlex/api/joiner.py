@@ -20,12 +20,17 @@ def assemble_recursively(
     dir_path: Path,
     non_yaml_files_as_scalars: bool = True,
     debug: bool = False,
+    sort_paths: bool = False,
 ) -> Union[dict, list]:
     # List all files
     all_paths = [
         p for p in dir_path.glob("*")
         if not (p.is_symlink() or p.name.startswith("!"))
     ]
+
+    if sort_paths:
+        all_paths.sort(key=lambda p: p.name)
+
     all_dirs: list[Path] = []
     all_yamls: dict[str, Path] = {}
     non_yaml_files: dict[str, Path] = {}
@@ -83,7 +88,7 @@ def assemble_recursively(
     # Directory's name is considered to be the name of the nested field,
     # if it's not an array. Otherwise, directory name is ignored.
     for sub_dir in all_dirs:
-        sub_dir_data = assemble_recursively(sub_dir, debug=debug)
+        sub_dir_data = assemble_recursively(sub_dir, debug=debug, sort_paths=sort_paths)
 
         # If directorie's name starts with a '+', then consider it a grouper
         # It doesn't represent a field. Consider data within it to be on the

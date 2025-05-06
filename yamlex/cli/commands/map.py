@@ -52,7 +52,7 @@ def map(
             "--source",
             "-s",
             help="Path to directory where YAML source files will be stored.",
-            show_default="[default: source or src/source]",
+            show_default="source or src/source",
             dir_okay=True,
             file_okay=False,
         )
@@ -73,7 +73,7 @@ def map(
             "--extension-yaml",
             "-e",
             help="Path to output extension.yaml file.",
-            show_default="[default: extension/extension.yaml or src/extension/extension.yaml]",
+            show_default="extension/extension.yaml or src/extension/extension.yaml",
             dir_okay=False,
             file_okay=True,
         )

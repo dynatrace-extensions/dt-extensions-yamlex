@@ -37,7 +37,7 @@ def join(
             "--source",
             "-s",
             help="Path to the directory where individual source component files are stored.",
-            show_default="[default: source or src/source]",
+            show_default="source or src/source",
             dir_okay=True,
             file_okay=False,
             exists=True,
@@ -50,7 +50,7 @@ def join(
             "--target",
             "-t",
             help="Path to the target extension.yaml file that will be assembled from parts.",
-            show_default="[default: extension/extension.yaml or src/extension/extension.yaml]",
+            show_default="extension/extension.yaml or src/extension/extension.yaml",
             dir_okay=False,
             file_okay=True,
         )
@@ -78,6 +78,14 @@ def join(
             "-v",
             help="Explicitly set the version in the extension.yaml.",
             show_default=False,
+        ),
+    ] = None,
+    max_line_length: Annotated[
+        Optional[int],
+        typer.Option(
+            "--max-line-length",
+            help="Maximum line length for the generated extension.yaml.",
+            show_default="not limited",
         ),
     ] = None,
     no_comment: no_comment_flag = False,
@@ -223,7 +231,12 @@ def join(
 
     # Write to output file
     should_add_comment = not no_comment
-    write_file(target, extension, add_comment=should_add_comment)
+    write_file(
+        target,
+        extension,
+        add_comment=should_add_comment,
+        max_line_length=max_line_length,
+    )
 
     if debug:
         print(extension)

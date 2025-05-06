@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 from io import StringIO
 from pathlib import Path
 from typing import Optional, Union
@@ -63,10 +64,12 @@ def write_file(
     file_path: Path,
     data: Union[dict, list],
     add_comment: bool = True,
+    max_line_length: Optional[int] = None,
 ) -> None:
     # Convert dict to YAML. Dump to string first to add a comment
     stream = StringIO()
     parser.indent(mapping=2, sequence=4, offset=2)
+    parser.width = max_line_length or sys.maxsize
     parser.dump(data, stream)
     text = stream.getvalue()
 

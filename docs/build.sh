@@ -19,9 +19,9 @@ SCRIPT_DIR="$( cd -P "$( dirname "$__source" )" >/dev/null 2>&1 && pwd )"
 # Render current up to date commands
 yamlex --help > "${SCRIPT_DIR}/yamlex_help.txt"
 yamlex join --help > "${SCRIPT_DIR}/yamlex_join_help.txt"
+yamlex diff --help > "${SCRIPT_DIR}/yamlex_diff_help.txt"
 yamlex map --help > "${SCRIPT_DIR}/yamlex_map_help.txt"
 yamlex split --help > "${SCRIPT_DIR}/yamlex_split_help.txt"
-yamlex diff --help > "${SCRIPT_DIR}/yamlex_diff_help.txt"
 
 # Render full documentation
 tera \
@@ -29,3 +29,10 @@ tera \
   --out "${SCRIPT_DIR}/../README.md" \
   --include \
   --env-only 
+
+# Remove the generated files
+rm "${SCRIPT_DIR}/yamlex_help.txt"
+rm "${SCRIPT_DIR}/yamlex_join_help.txt"
+rm "${SCRIPT_DIR}/yamlex_diff_help.txt"
+rm "${SCRIPT_DIR}/yamlex_map_help.txt"
+rm "${SCRIPT_DIR}/yamlex_split_help.txt"

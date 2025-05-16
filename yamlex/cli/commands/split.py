@@ -14,7 +14,7 @@ from yamlex.api.util import (
     write_file,
 )
 from yamlex.cli.common_flags import (
-    no_comment_flag,
+    no_file_header_flag,
     force_flag,
     verbose_flag,
     quiet_flag,
@@ -51,7 +51,7 @@ def split(
             writable=True,
         ),
     ] = None,
-    no_comment: no_comment_flag = False,
+    no_comment: no_file_header_flag = False,
     force: force_flag = False,
     verbose: verbose_flag = False,
     quiet: quiet_flag = False,
@@ -92,5 +92,5 @@ def split(
             logger.info(f"(Skipping) Part: {path}")
         else:
             should_add_comment = not no_comment
-            write_file(path, part, add_comment=should_add_comment)
+            write_file(path, part, add_file_header=should_add_comment)
             logger.info(f"Part written: {path}")

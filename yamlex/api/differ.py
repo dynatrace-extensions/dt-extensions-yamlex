@@ -12,28 +12,16 @@ parser = ruamel.yaml.YAML()
 
 
 def diff(
-    source_file_path: Path,
-    target_file_path: Path,
+    source_data: dict,
+    target_data: dict,
     debug: bool = False,
 ) -> dict:
     """
     Compare two YAML files recursively and return the differences.
 
-    Args:
-        source_file_path (Path): Path to the source YAML file.
-        target_file_path (Path): Path to the target YAML file.
-        debug (bool): If True, print debug information.
-
     Returns:
         dict: A dictionary containing the differences between the two files.
     """
-    # Load data from the source and target files
-    with open(source_file_path, "r") as source_file:
-        source_data: dict = parser.load(source_file)
-    
-    with open(target_file_path, "r") as target_file:
-        target_data: dict = parser.load(target_file)
-
     differences = DeepDiff(
         source_data,
         target_data,

@@ -1,9 +1,17 @@
 import logging
-import re
 from pathlib import Path
 from typing import Union
 
 import ruamel.yaml
+
+from yamlex.api.util import (
+    sanitize_file_stem,
+    remove_yaml_comments,
+    indent,
+)
+from yamlex.api.exceptions import (
+    FailedToParseYamlError,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -29,42 +37,52 @@ DATASOURCE_NAMES = [
 def split_yaml(
     source_file_path: Path,
     target_dir_path: Path,
+    remove_comments: bool = False,
 ) -> dict[Path, Union[dict, list]]:
     """Decompose a YAML file into multiple files."""
     parts_to_write: dict[Path, Union[dict, list]] = dict()
 
     logger.info(f"Decomposing the central YAML file into parts: {source_file_path}")
-    with open(source_file_path, "r") as extension_yaml_file:
-        parser = ruamel.yaml.YAML()
-        data: dict = parser.load(extension_yaml_file)
+    try:
+        with open(source_file_path, "r") as extension_yaml_file:
+            parser = ruamel.yaml.YAML()
+            raw_data: dict = parser.load(extension_yaml_file)
+            data = remove_yaml_comments(
+                source_file_path,
+                raw_data,
+                recursive=True,
+            ) if remove_comments else raw_data
+    except Exception as e:
+        raise FailedToParseYamlError(e)
 
     # Process datasource
-    logger.info(f"Processing datasource...")
+    logger.info(f"Extracting datasource...")
     datasource = extract_datasource(data, target_dir_path)
     parts_to_write.update(datasource)
 
     # Process metrics
-    logger.info(f"Processing metrics...")
+    logger.info(f"Extracting metrics...")
     metrics_dir_path = target_dir_path / "metrics"
     metrics = extract_metrics(data, metrics_dir_path)
     parts_to_write.update(metrics)
 
     # Process screens
-    logger.info(f"Processing screens...")
+    logger.info(f"Extracting screens...")
     screens_dir_path = target_dir_path / "screens"
     screens = extract_screens(data, screens_dir_path)
     parts_to_write.update(screens)
 
     # Process topology
-    logger.info(f"Processing topology...")
+    logger.info(f"Extracting topology...")
     topology_dir_path = target_dir_path / "topology"
     topology = extract_topology(data, topology_dir_path)
     parts_to_write.update(topology)
     
     # Dump the rest into the index file
-    index_yaml_file_path = target_dir_path / "index.yaml"
+    logger.info(f"Extracting the rest into grouper index file...")
+    index_yaml_file_path = target_dir_path / "+index.yaml"
     parts_to_write[index_yaml_file_path] = data
-    logger.info(f"Index file extracted: {index_yaml_file_path}")
+    logger.info(f"{indent(1)}Index file extracted: {index_yaml_file_path}")
 
     # Return collected summary
     return parts_to_write
@@ -86,55 +104,55 @@ def extract_datasource(
             break
 
     if datasource_name:
-        logger.info(f"Datasource name detected: {datasource_name}")
+        logger.info(f"{indent(1)}Datasource name detected: {datasource_name}")
     else:
-        logger.error("Datasource definition not found")
+        logger.error(f"{indent(1)}Datasource definition not found")
         return paths_to_write
     
     datasource_dir_path = target_dir_path / datasource_name
     
     if datasource_name == "python":
-        python_index_yaml_path = datasource_dir_path / "index.yaml"
+        python_index_yaml_path = datasource_dir_path / "+index.yaml"
         paths_to_write[python_index_yaml_path] = datasource
 
     elif datasource_name == "processes":
         for process in datasource:
             process_name = process.get("name")
             if not process_name:
-                logger.error("Process does not have a name")
+                logger.error(f"{indent(1)}Process does not have a name")
                 continue
 
             process_file_name = sanitize_file_stem(process_name)
             process_file_path = datasource_dir_path / f"-{process_file_name}.yaml"
             paths_to_write[process_file_path] = process
-            logger.info(f"Process extracted: {process_file_path}")
+            logger.info(f"{indent(1)}Process extracted: {process_file_path}")
 
     else:
         for group in datasource:
             group_name = group.get("group")
             if not group_name:
-                logger.error("Group does not have a name")
+                logger.error(f"{indent(2)}Group does not have a name")
                 continue
 
             subgroups = group.pop("subgroups", None)
             # If subgroups exist, split them into different files
             if isinstance(subgroups, list):
                 group_file_name = sanitize_file_stem(group_name)
-                group_dir_path = datasource_dir_path / "groups" / group_file_name
+                group_dir_path = datasource_dir_path / f"-{group_file_name}"
                 for subgroup in subgroups:
                     subgroup_name = subgroup.get("subgroup")
                     if not subgroup_name:
-                        logger.error("Subgroup does not have a name")
+                        logger.error(f"{indent(3)}Subgroup does not have a name")
                         continue
 
                     subgroup_file_name = sanitize_file_stem(subgroup_name)
                     subgroup_file_path = group_dir_path / "subgroups" / f"-{subgroup_file_name}.yaml"
                     paths_to_write[subgroup_file_path] = subgroup
-                    logger.info(f"Subgroup extracted: {subgroup_file_path}")
+                    logger.info(f"{indent(3)}Subgroup extracted: {subgroup_file_path}")
 
-                group_file_path = group_dir_path / "index.yaml"
+                group_file_path = group_dir_path / "+index.yaml"
                 paths_to_write[group_file_path] = group
-                logger.info(f"Group extracted: {group_file_path}")
+                logger.info(f"{indent(2)}Group extracted: {group_file_path}")
 
             # If subgroups do not exist, write each group into
             # individual files.
@@ -142,7 +160,7 @@ def extract_datasource(
                 group_file_name = sanitize_file_stem(group_name)
                 group_file_path = datasource_dir_path / f"-{group_file_name}.yaml"
                 paths_to_write[group_file_path] = group
-                logger.info(f"Group extracted: {group_file_path}")
+                logger.info(f"{indent(2)}Group extracted: {group_file_path}")
 
     return paths_to_write
 
@@ -156,7 +174,7 @@ def extract_metrics(extension: dict, metrics_dir_path: Path) -> dict[Path, dict]
     for metric in metrics:
         metric_key = metric.get("key")
         if not metric_key:
-            logger.error(f"Metric does not have a 'key': {metric}")
+            logger.error(f"{indent(1)}Metric does not have a 'key': {metric}")
             continue
 
         metric_file_name = sanitize_file_stem(metric_key)
@@ -164,7 +182,7 @@ def extract_metrics(extension: dict, metrics_dir_path: Path) -> dict[Path, dict]
         # Extract metric into a separate file
         metric_file_path = metrics_dir_path / f"-{metric_file_name}.yaml"
         paths_to_write[metric_file_path] = metric
-        logger.info(f"Metric extracted: {metric_file_path}")
+        logger.info(f"{indent(1)}Metric extracted: {metric_file_path}")
 
     return paths_to_write
 
@@ -178,7 +196,7 @@ def extract_screens(extension: dict, screens_dir_path: Path) -> dict[Path, dict]
     for screen in screens:
         entity_type: str = screen.get("entityType")
         if not entity_type:
-            logger.error(f"Screen does not have an entity_type")
+            logger.error(f"{indent(1)}Screen does not have an entity_type")
             continue
             
         screen_file_name = sanitize_file_stem(entity_type)
@@ -186,7 +204,7 @@ def extract_screens(extension: dict, screens_dir_path: Path) -> dict[Path, dict]
         # Extract screen into a separate file
         screen_file_path = screens_dir_path / f"-{screen_file_name}.yaml"
         paths_to_write[screen_file_path] = screen
-        logger.info(f"Screen extracted: {screen_file_path}")
+        logger.info(f"{indent(1)}Screen extracted: {screen_file_path}")
 
     return paths_to_write
 
@@ -198,10 +216,12 @@ def extract_topology(extension: dict, topology_dir_path: Path) -> dict[Path, dic
     
     topology: dict = extension.pop("topology")
 
+    logger.info(f"{indent(1)}Extracting types...")
     types_dir_path = topology_dir_path / "types"
     types = extract_types(topology, types_dir_path)
     paths_to_write.update(types)
 
+    logger.info(f"{indent(1)}Extracting relationships...")
     relationships_dir_path = topology_dir_path / "relationships"
     relationships = extract_relationships(topology, relationships_dir_path)
     paths_to_write.update(relationships)
@@ -218,7 +238,7 @@ def extract_types(topology: dict, types_dir_path: Path) -> dict[Path, dict]:
     for type_ in types:
         type_name = type_.get("name")
         if not type_name:
-            logger.error(f"Type does not have a name: {type_}")
+            logger.error(f"{indent(2)}Type does not have a name: {type_}")
             continue
 
         type_file_name = sanitize_file_stem(type_name)
@@ -226,7 +246,7 @@ def extract_types(topology: dict, types_dir_path: Path) -> dict[Path, dict]:
         # Extract type into a separate file
         type_file_path = types_dir_path / f"-{type_file_name}.yaml"
         paths_to_write[type_file_path] = type_
-        logger.info(f"Type extracted: {type_file_path}")
+        logger.info(f"{indent(2)}Type extracted: {type_file_path}")
 
     return paths_to_write
 
@@ -243,7 +263,7 @@ def extract_relationships(topology, relationships_dir_path: Path) -> dict[Path, 
             or "toType" not in relationship
             or "typeOfRelation" not in relationship
         ):
-            logger.error(f"Relationship does not have required fields: {relationship}")
+            logger.error(f"{indent(2)}Relationship does not have required fields: {relationship}")
             continue
 
         relationship_file_name = sanitize_file_stem(
@@ -257,11 +277,6 @@ def extract_relationships(topology, relationships_dir_path: Path) -> dict[Path, 
         # Extract relationship into a separate file
         relationship_file_path = relationships_dir_path / f"-{relationship_file_name}.yaml"
         paths_to_write[relationship_file_path] = relationship
-        logger.info(f"Relationship extracted: {relationship_file_path}")
+        logger.info(f"{indent(2)}Relationship extracted: {relationship_file_path}")
 
     return paths_to_write
-
-
-def sanitize_file_stem(stem: str) -> Path:
-    valid_id = re.sub(r"[^a-z0-9\.]", "_", stem.lower())
-    return valid_id

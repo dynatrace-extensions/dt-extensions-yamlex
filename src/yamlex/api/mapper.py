@@ -4,6 +4,10 @@ import re
 from pathlib import Path
 from typing import Union
 
+from yamlex.api.exceptions import (
+    MissingExtensionSchema
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +130,7 @@ def validate_json_schemas_dir(json_schemas_dir_path: Path):
     """Make sure that source directory with JSON schema contains valid JSON schema files"""
     if not (json_schemas_dir_path / "extension.schema.json").exists():
         logger.error(f"{json_schemas_dir_path} directory does not contain extension.schema.json file.")
-        exit(1)
+        raise MissingExtensionSchema()
 
 
 def extract_definitions_into_standalone_schemas(json_schemas_dir_path: Path) -> None:

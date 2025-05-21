@@ -34,10 +34,27 @@ quiet_flag = Annotated[
         help="Disable any informational output. Only errors.",
     ),
 ]
-debug_flag = Annotated[
+dry_run_flag = Annotated[
     bool,
     typer.Option(
-        "--debug",
-        hidden=True,
+        "--dry-run",
+        help=(
+            "Test run without any files being created. "
+        ),
+    ),
+]
+remove_comments_flag = Annotated[
+    bool,
+    typer.Option(
+        "--remove-comments",
+        help="Remove any YAML comments from the created files."
+    ),
+]
+line_length_option = Annotated[
+    Optional[int],
+    typer.Option(
+        "--line-length",
+        help="Maximum line length in the generated extension.yaml.",
+        show_default="not limited",
     ),
 ]

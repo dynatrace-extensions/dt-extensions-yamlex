@@ -6,7 +6,7 @@
 </p>
 
 The `yamlex` command-line tool is here to assist you in development of
-an oversized `extension.yaml`, when working with Dynatrace 2.0 Extensions.
+an large Dynatrace Extensions.
 
 It can assemble one giant `extension.yaml` from individual parts placed
 in the `source/` folder.
@@ -19,13 +19,32 @@ in the `source/` folder.
 * Flexibility in organization: organize the parts of your extension
   into the hierarchy you like: folders, nesting, and so on.
 
-## How to use it
+## How you would use it 99% of the time
 
-Just run `yamlex join` in the folder with extension that already has its
-individual parts prepared for assembly:
+Imagine you have an extension, with the individual YAML parts sitting in the
+`src/source/` folder and the assembled `extension.yaml` stored in
+`src/extension/extension.yaml`.
+
+1. You modify a few parts inside the `src/source/` to implement new changes.
+2. You then run `yamlex diff` to see what would change if you join:
+
+   ```shell
+   yamlex diff -s src/extension/extension.yaml -t src/source/
+   ```
+
+3. If you are satisfied with the diff, run `yamlex join`:
+
+   ```shell   
+   yamlex join
+   ```
+
+**🆕 New in Yamlex 1.3:** The way final `extension.yaml` is assembled has
+changed in Yamlex 1.3.0. To preserve the old behavior such as line length
+being limited to 80 chars you can invoke `yamlex join` with additional
+flags:
 
 ```shell
-yamlex join --source dir/with/parts/ --target extension.yaml
+yamlex join --line-length 80 --sort-paths --remove-comments
 ```
 
 ## There is more to it
@@ -139,6 +158,7 @@ $ yamlex --help
  Usage: yamlex [OPTIONS] COMMAND [ARGS]...                                      
                                                                                 
  How assembling works:                                                          
+                                                                                
  - Hierarchy preserved                                                          
                                                                                 
    Any folder or file within the --source directory is considered to be         
@@ -321,11 +341,11 @@ $ yamlex --help
 │ --help     -h        Show this message and exit.                             │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ diff   Compare source YAML file or directory to target and print the         │
-│        differences.                                                          │
-│ join   Join individual components into a single extension.yaml file.         │
-│ map    Map JSON schema to YAML files in VS Code settings.                    │
-│ split  Split extension.yaml file into individual components.                 │
+│ map     Map JSON schema to YAML files in VS Code settings.                   │
+│ split   Split extension.yaml file into individual components.                │
+│ join    Join individual components into a single extension.yaml file.        │
+│ diff    Compare --source YAML file or directory to --target and print the    │
+│         differences.                                                         │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```
@@ -340,7 +360,8 @@ Assemble `extension.yaml` from parts
 # Normal call
 $ yamlex join
 
-# Shorthand
+# Shorthand: Yamlex will automatically find your source and target paths if the
+# are located in the usual places: inside the current dir or inside src/ folder.
 $ yamlex j
 
 # More options: specify where the parts are and where the assembled file should be
@@ -353,6 +374,9 @@ $ yamlex j --line-length 80
 # Sort all paths in the source folder before assembling (this affects the order
 # of the keys in the assembled file)
 $ yamlex j --sort-paths
+
+# Remove any YAML comments form the generated file
+$ yamlex j --remove-comments
 
 # Generate the "dev" version of the extension with 'custom:' prefix in its name
 # and the version explicitly specified in the generated extension.yaml
@@ -373,15 +397,16 @@ $ yamlex join --help
  Usage: yamlex join [OPTIONS]                                                   
                                                                                 
  Join individual components into a single extension.yaml file.                  
+                                                                                
  Assembles all files from the --source directory in a hierarchical order.       
- As if the folder structure of the source directory represents a YAML           
+ As if the folder structure of the --source directory represents a YAML         
  structure.                                                                     
                                                                                 
  Overwriting existing extension.yaml (--no-file-header and --force)             
                                                                                 
  Yamlex tries to be cautious not to accidentally overwrite a manually           
  created extension.yaml. If that file contains the "Generated with              
- yamlex" line in it, then yamlex overwrites it without hesitation.              
+ yamlex" header in it, then yamlex overwrites it without hesitation.            
  However, when extension.yaml does not contain that line, yamlex                
  does not overwrite it. You can alter this behaviour using --force flag.        
                                                                                 
@@ -404,24 +429,23 @@ $ yamlex join --help
 │                                       that will be assembled from parts.     │
 │                                       [default: (extension/extension.yaml or │
 │                                       src/extension/extension.yaml)]         │
-│ --dev              -d                 Add 'custom:' prefix and explicit      │
-│                                       version when producing extension.yaml. │
+│ --dev              -d                 Add the 'custom:' prefix and embed     │
+│                                       version into extension.yaml.           │
 │ --keep             -k                 Keep formatting and indentation when   │
-│                                       adding non-yaml files into             │
-│                                       extension.yaml.                        │
+│                                       embedding non-yaml files.              │
 │                                       [default: True]                        │
 │ --version          -v      TEXT       Explicitly set the version in the      │
 │                                       extension.yaml.                        │
-│ --line-length              INTEGER    Maximum line length in the generated   │
-│                                       extension.yaml.                        │
-│                                       [default: (not limited)]               │
 │ --sort-paths                          Sort paths alphabetically when         │
 │                                       traversing source directory before     │
 │                                       join.                                  │
-│ --dry-run                             Verify the source directory before     │
-│                                       assembling it.                         │
+│ --line-length              INTEGER    Maximum line length in the generated   │
+│                                       extension.yaml.                        │
+│                                       [default: (not limited)]               │
+│ --dry-run                             Test run without any files being       │
+│                                       created.                               │
 │ --remove-comments                     Remove any YAML comments from the      │
-│                                       assembled file.                        │
+│                                       created files.                         │
 │ --no-file-header   -H                 Do not add the 'generated by yamlex'   │
 │                                       comment header at the top of the file. │
 │ --force            -f                 Overwrite target files even if they    │
@@ -436,14 +460,14 @@ $ yamlex join --help
 
 ### `diff`
 
-Compare two YAML files and show the differences.
+Compare two YAML files or source dirrectories and show the differences.
 
 This is an **extremely useful command** when you are dealing with a very big
 set of changes in the `extension.yaml` file and need to verify what exactly changed.
 
 The power of `yamlex diff` is that it can compare the actual content of the YAML,
 not the line number or the order of the keys. It recursively compares the source 
-and target YAML files and shows exactly what has changed and where, irrespective
+and target and shows exactly what has changed and where, irrespective
 of how the keys are ordered or how long the lines are.
 
 Use cases:
@@ -459,24 +483,18 @@ This is useful when you want to see what changed in the `extension.yaml`
 between two versions of the extension. It can also be used to compare
 the `extension.yaml` with the split parts to see if they are in sync.
 
-*Note:* The `diff` command can't compare folders. It compares two YAML files.
+**ℹ️ Note:** The `--source` will be marked as "old" in the diff and the
+`--target` will be marked as "new".
 
 **Usage**
 
 ```shell
 # Compare a new version of the extension.yaml to the old one
-yamlex diff --source src/extension/new-extension.yaml --target src/extension/extension.yaml
-```
+yamlex diff --source src/extension/extension.yaml --target src/extension/new-extension.yaml
 
-You might want to first assemble a new temporary version of the `extension.yaml`
-and then compare it with the old version of the `extension.yaml` in the repo:
-
-```shell
-# Assemble the new version of the extension.yaml
-yamlex join --source extension/src --target temporary.yaml
-
-# Compare the new version of the extension.yaml to the old one
-yamlex diff --source temporary.yaml --target extension/extension.yaml
+# Compare the contents of the source directory to the existing extension.yaml
+# to see what would change if you run join
+yamlex d -s src/extension/extension.yaml -t src/source/
 ```
 
 **Help**
@@ -486,12 +504,16 @@ $ yamlex diff --help
                                                                                 
  Usage: yamlex diff [OPTIONS]                                                   
                                                                                 
- Compare source YAML file or directory to target and print the differences.     
- Recursively compares the source and target YAML files or directories and       
- prints the differences in JSON format. Diff does not care about the            
- formatting of the source and target, only about the actual content.            
+ Compare --source YAML file or directory to --target and print the differences. 
                                                                                 
- Both source and target can be a file or a directory.                           
+ Recursively compares the --source and --target YAML files or directories and   
+ prints the differences in JSON format. Diff does not care about the            
+ formatting of the --source and --target, only about the actual content.        
+                                                                                
+ The data from --source will be marked as "old" in the diff and the data        
+ from --target will be marked as "new".                                         
+                                                                                
+ Both --source and --target can be a file or a directory.                       
                                                                                 
  Exits with exit code 0 if there is no difference. Otherwise, the exit          
  code is 1.                                                                     
@@ -539,6 +561,7 @@ $ yamlex map --help
  Usage: yamlex map [OPTIONS] [SETTINGS]                                         
                                                                                 
  Map JSON schema to YAML files in VS Code settings.                             
+                                                                                
                                                                                 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
 │   settings      [SETTINGS]  Path to the VS Code settings.json file.          │
@@ -594,39 +617,49 @@ $ yamlex split --help
  Usage: yamlex split [OPTIONS]                                                  
                                                                                 
  Split extension.yaml file into individual components.                          
+                                                                                
  Performs a "best effort" opinionated splitting. This operation does not        
- affect the original extension.yaml file. Instead, it extracts components       
- from it and places them into individual files within the --target folder.      
+ affect the original extension.yaml file specified by --source. Instead,        
+ it extracts components from it and places them into individual files           
+ within the --target folder.                                                    
                                                                                 
  Splitting multiple times:                                                      
                                                                                 
- Theoretically, you only split once. But in practice you can do it over         
- and over (not very well tested). When performing consequent splitting,         
- the operation overwrites any previously generated split files, if they         
- have the 'Generated by yamlex' line within them. If the target file            
- does not have the comment, it is considered to be manually created and is      
- not overwritten. You can still force the overwrite using the --force flag.     
+ Theoretically, you only need to split once. However, in practice, you          
+ can do it over and over again (not very well tested). When performing          
+ consequent splittings, the command overwrites any previously generated         
+ split files, if they have the 'Generated by yamlex' header within them.        
+ If the target split part does not have that header, it is considered           
+ to be manually created and is not overwritten. You can still force             
+ the overwrite using the --force flag.                                          
                                                                                 
- Do not add 'Generated with yamlex' to files when splitting:                    
+ Remove 'Generated with yamlex' header from split files:                        
                                                                                 
  When splitting, you can choose to not add the 'Generated by yamlex'            
- comment to the generated files by using the --no-comment flag.                 
+ header to the generated files by using the --no-file-header flag.              
                                                                                 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --source          -s      FILE       Path to source extension.yaml file.     │
-│                                      [default: (extension/extension.yaml or  │
-│                                      src/extension/extension.yaml)]          │
-│ --target          -t      DIRECTORY  Path to directory where split YAML      │
-│                                      source files will be stored.            │
-│                                      [default: (source or src/source)]       │
-│ --no-file-header  -H                 Do not add the 'generated by yamlex'    │
-│                                      comment header at the top of the file.  │
-│ --force           -f                 Overwrite target files even if they     │
-│                                      were created manually.                  │
-│ --verbose                            Enable verbose output.                  │
-│ --quiet                              Disable any informational output. Only  │
-│                                      errors.                                 │
-│ --help            -h                 Show this message and exit.             │
+│ --source           -s      FILE       Path to source extension.yaml file.    │
+│                                       [default: (extension/extension.yaml or │
+│                                       src/extension/extension.yaml)]         │
+│ --target           -t      DIRECTORY  Path to directory where split YAML     │
+│                                       source files will be stored.           │
+│                                       [default: (source or src/source)]      │
+│ --line-length              INTEGER    Maximum line length in the generated   │
+│                                       extension.yaml.                        │
+│                                       [default: (not limited)]               │
+│ --dry-run                             Test run without any files being       │
+│                                       created.                               │
+│ --remove-comments                     Remove any YAML comments from the      │
+│                                       created files.                         │
+│ --no-file-header   -H                 Do not add the 'generated by yamlex'   │
+│                                       comment header at the top of the file. │
+│ --force            -f                 Overwrite target files even if they    │
+│                                       were created manually.                 │
+│ --verbose                             Enable verbose output.                 │
+│ --quiet                               Disable any informational output. Only │
+│                                       errors.                                │
+│ --help             -h                 Show this message and exit.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
 ```

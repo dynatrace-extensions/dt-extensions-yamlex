@@ -246,11 +246,14 @@ def run() -> None:
 
     # Declare aliases for popular commands.
     app.command(name="j", hidden=True)(join_cmd)
-    app.command(name="s", hidden=True)(split_cmd)
+    app.command(name="d", hidden=True)(diff_cmd)
 
     # Launch Typer app.
     try:
         app()
     except YamlexError as e:
-        print(f"Error! {e.args[0]}", file=sys.stderr)
-        exit(e.code)
+        code = e.code
+        name = e.__class__.__name__
+        message = f" {e.args[0]}" if e.args else ""
+        print(f"Error {code} ({name})!{message}", file=sys.stderr)
+        exit(code)

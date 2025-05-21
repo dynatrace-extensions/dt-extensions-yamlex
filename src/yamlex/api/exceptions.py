@@ -40,9 +40,29 @@ class IndexFileIsArray(YamlexError):
     code = 18
 
 
-class InvalidSourcePath(YamlexError):
+class InvalidPath(YamlexError):
     code = 19
 
 
-class InvalidTargetPath(YamlexError):
+class NoValidVersionNumber(YamlexError):
     code = 20
+
+
+class MissingExtensionSchema(YamlexError):
+    code = 21
+
+
+class ExtensionDirNotFound(YamlexError):
+    code = 22
+
+
+class FailedToReadVersionFile(YamlexError):
+    code = 23
+
+
+class FailedToWriteVersionFile(YamlexError):
+    code = 24
+
+
+class DuplicateKey(YamlexError):
+    code = 25

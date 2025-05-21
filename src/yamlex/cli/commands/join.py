@@ -6,10 +6,7 @@ from typing import Optional
 import typer
 from typing_extensions import Annotated
 
-from yamlex.api.joiner import (
-    assemble_recursively,
-    remove_yaml_comments,
-)
+from yamlex.api.joiner import assemble_recursively
 from yamlex.api.util import (
     adjust_root_logger,
     get_default_extension_dir_path,
@@ -30,7 +27,9 @@ from yamlex.cli.common_flags import (
     force_flag,
     verbose_flag,
     quiet_flag,
-    debug_flag,
+    dry_run_flag,
+    remove_comments_flag,
+    line_length_option,
 )
 
 
@@ -67,7 +66,7 @@ def join(
         typer.Option(
             "--dev",
             "-d",
-            help="Add 'custom:' prefix and explicit version when producing extension.yaml.",
+            help="Add the 'custom:' prefix and embed version into extension.yaml.",
         ),
     ] = False,
     keep_formating: Annotated[
@@ -75,7 +74,7 @@ def join(
         typer.Option(
             "--keep",
             "-k",
-            help="Keep formatting and indentation when adding non-yaml files into extension.yaml.",
+            help="Keep formatting and indentation when embedding non-yaml files.",
         ),
     ] = True,
     version: Annotated[
@@ -87,14 +86,6 @@ def join(
             show_default=False,
         ),
     ] = None,
-    line_length: Annotated[
-        Optional[int],
-        typer.Option(
-            "--line-length",
-            help="Maximum line length in the generated extension.yaml.",
-            show_default="not limited",
-        ),
-    ] = None,
     sort_paths: Annotated[
         bool,
         typer.Option(
@@ -102,22 +93,9 @@ def join(
             help="Sort paths alphabetically when traversing source directory before join.",
         ),
     ] = False,
-    dry_run: Annotated[
-        bool,
-        typer.Option(
-            "--dry-run",
-            help=(
-               "Verify the source directory before assembling it. "
-            ),
-        ),
-    ] = False,
-    remove_comments: Annotated[
-        bool,
-        typer.Option(
-            "--remove-comments",
-            help="Remove any YAML comments from the assembled file."
-        ),
-    ] = False,
+    line_length: line_length_option = None,
+    dry_run: dry_run_flag = False,
+    remove_comments: remove_comments_flag = False,
     no_file_header: no_file_header_flag = False,
     force: force_flag = False,
     verbose: verbose_flag = False,
@@ -127,14 +105,14 @@ def join(
     Join individual components into a single [i]extension.yaml[/i] file.
 
     Assembles all files from the --source directory in a hierarchical order.
-    As if the folder structure of the source directory represents a YAML
+    As if the folder structure of the --source directory represents a YAML
     structure.
 
     [b]Overwriting existing extension.yaml (--no-file-header and --force)[/b]
 
     Yamlex tries to be cautious not to accidentally overwrite a manually
     created [i]extension.yaml[/i]. If that file contains the "Generated with
-    yamlex" line in it, then yamlex overwrites it without hesitation.
+    yamlex" header in it, then yamlex overwrites it without hesitation.
     However, when [i]extension.yaml[/i] does not contain that line, yamlex
     does not overwrite it. You can alter this behaviour using --force flag.
     
@@ -169,20 +147,22 @@ def join(
             if w.category is UnintendedIndexFileWarning:
                 index_file_paths.append(w.message.args[0])
 
-        if dry_run and index_file_paths:
-            print(f"Warning! index.yaml files found.")
-            for i in index_file_paths:
-                print(i)
-            print((
-                "Newer versions of Yamlex no longer use index files as "
-                "groupers. If you intend to have a field called 'index', "
-                "ignore this warning. Otherwise, prefix the index file with "
-                f"a grouper sign like so: +index.yaml. This warning will be "
-                "removed in the later versions of Yamlex."
-            ))
+        # Explicitly disabled until we bump major version. For now we
+        # support index.yaml files as usual.
+        # if dry_run and index_file_paths:
+        #     print(f"Warning! index.yaml files found.")
+        #     for i in index_file_paths:
+        #         print(i)
+        #     print((
+        #         "Newer versions of Yamlex no longer use index files as "
+        #         "groupers. If you intend to have a field called 'index', "
+        #         "ignore this warning. Otherwise, prefix the index file with "
+        #         f"a grouper sign like so: +index.yaml. This warning will be "
+        #         "removed in the later versions of Yamlex."
+        #     ))
 
     # An assembled extension cannot be an array.
-    if not isinstance(extension, dict):
+    if isinstance(extension, list):
         raise WrongExtensionStructureError((
             "Error! Invalid source directory structure. "
             "Assembled extension is an array while object is expected."

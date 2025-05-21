@@ -6,14 +6,21 @@ from typing import Union
 
 import ruamel.yaml
 from ruamel.yaml.scalarstring import FoldedScalarString
+from ruamel.yaml.comments import (
+    CommentedBase,
+    CommentedMap,
+    CommentedSeq,
+    Comment,
+)
 
-from .util import remove_yaml_comments
+from .util import remove_yaml_comments, indent as indentation
 from .exceptions import (
     InvalidItemWithinArrayDirectoryError,
     UnintendedIndexFileWarning,
     NonTextFileError,
     FailedToParseYamlError,
     IndexFileIsArray,
+    DuplicateKey,
 )
 
 
@@ -24,12 +31,13 @@ parser = ruamel.yaml.YAML()
 def assemble_recursively(
     dir_path: Path,
     keep_formatting: bool = True,
-    debug: bool = False,
     sort_paths: bool = False,
     dry_run: bool = False,
     remove_comments: bool = False,
+    level: int = 0,
 ) -> Union[dict, list]:
-    logger.debug(f"Assembling level: {dir_path}")
+    indent = indentation(level)
+    logger.debug(f"{indent}Assembling level: {dir_path}")
 
     # Get all files in this directory that we will process, but ignore
     # symlinks and paths starting with '!'
@@ -74,7 +82,19 @@ def assemble_recursively(
                     "Please make sure the YAML syntax is correct. "
                     f"The exact parsing error is: {e}"
                 )
-            data[yaml_file_name] = yaml_file_data
+            
+            if yaml_file_name in data:
+                raise DuplicateKey(
+                    f"Duplicate key found inside {dir_path}: {yaml_file_name}"
+                )
+            
+            # Remove comments if necessary
+            data[yaml_file_name] = remove_yaml_comments(
+                yaml_file_name,
+                yaml_file_data,
+                recursive=True,
+                level=level + 1,
+            ) if remove_comments else yaml_file_data
 
     # Load data from scalar files.
     # Example: query.sql file containing a SQL query
@@ -92,6 +112,12 @@ def assemble_recursively(
             scalar_node: str | FoldedScalarString = scalar_file_content
             if keep_formatting:
                 scalar_node = FoldedScalarString(scalar_file_content)
+
+            if scalar_file_name in data:
+                raise DuplicateKey(
+                    f"Duplicate key found inside {dir_path}: {yaml_file_name}"
+                )
+
             data[scalar_file_name] = scalar_node
 
     # Recursively traverse directories.
@@ -103,16 +129,35 @@ def assemble_recursively(
             sort_paths=sort_paths,
             dry_run=dry_run,
             remove_comments=remove_comments,
+            level=level + 1,
         )
+
+        if sub_dir.name in data:
+            raise DuplicateKey(
+                f"Duplicate key found inside {dir_path}: {sub_dir.name}"
+            )
+
         data[sub_dir.name] = sub_dir_data
 
     # Current directory is an array if either
     #   a. There is at least 1 item in it prefixed with a dash
     #   b. There is at least 1 grouper object that is a list
-    is_current_dir_array = (
-        any(k.startswith("-") for k in data.keys())
-        or any(k.startswith("+") and isinstance(v, list) for k, v in data.items())
-    )
+    is_current_dir_array = False
+    for k, v in data.items():
+        if k.startswith("-"):
+            is_current_dir_array = True
+            logger.debug((
+                f"{indent}Level {dir_path} is an array because an item "
+                f"with the dash prefix was found: {k}"
+            ))
+            break
+        if k.startswith("+") and isinstance(v, list):
+            is_current_dir_array = True
+            logger.debug((
+                f"{indent}Level {dir_path} is an array because a grouper "
+                f"containing an array was found: {k}"
+            ))
+            break
 
     result_as_list: list = []
     result_as_dict: dict = {}
@@ -147,7 +192,5 @@ def assemble_recursively(
                 result_as_dict[k] = v
 
     result = result_as_list if is_current_dir_array else result_as_dict
-    if remove_comments:
-        result = remove_yaml_comments(result)
-    logger.debug(f"Changed type of {dir_path} is {type(result)}")
+    logger.debug(f"{indent}Level {dir_path} returned {type(result)}")
     return result

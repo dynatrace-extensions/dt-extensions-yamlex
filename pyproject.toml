@@ -1,39 +1,41 @@
-[tool.poetry]
-authors = ["Vagiz Duseev <vagiz.duseev@dynatrace.com>"]
-description = "Command-line tool to simplify development of Dynatrace Extensions with big YAML"
-documentation = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
-homepage = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
-keywords = ["dynatrace", "cli", "extensions"]
-license = "Apache-2.0"
-maintainers = ["Vagiz Duseev <vagiz.duseev@dynatrace.com>"]
+[project]
 name = "yamlex"
-packages = [
-  {include = "yamlex"},
-]
-readme = "README.md"
-repository = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
 version = "1.2.0"
+description = "Dynatrace Extensions: assemble extension.yaml from individual parts"
+keywords = ["dynatrace", "cli", "extensions"]
+readme = "README.md"
+authors = [
+    { name = "Vagiz Duseev", email = "vagiz.duseev@dynatrace.com" }
+]
+maintainers = [
+    { name = "Vagiz Duseev", email = "vagiz.duseev@dynatrace.com" }
+]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+dependencies = [
+    "deepdiff>=8.4",
+    "ruamel-yaml>=0.18",
+    "typer>=0.9",
+]
 
-[tool.poetry.dependencies]
-python = "^3.9"
-wheel = "^0"
-typer = "^0.9"
-typing-extensions = "^4"
-ruamel-yaml = "^0.18"
-rich = "^13.7"
-deepdiff = "^8.4.2"
+[project.urls]
+Documentation = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
+Repository = "https://github.com/dynatrace-extensions/dt-extensions-yamlex"
+Issues = "https://github.com/dynatrace-extensions/dt-extensions-yamlex/issues"
 
-[tool.poetry.group.dev.dependencies]
-black = {version = ">=20", allow-prereleases = true}
-bump2version = ">=1.0"
-debugpy = "^1.8.1"
+[project.scripts]
+yamlex = "yamlex.cli.app:run"
 
 [build-system]
-build-backend = "poetry.core.masonry.api"
-requires = ["poetry-core>=1.0.8"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry.scripts]
-yamlex = 'yamlex.cli.app:run'
+[dependency-groups]
+dev = [
+    "bump2version>=1.0.1",
+    "ruff>=0.11.10",
+]
 
-[tool.black]
-line-length = 120
+[tool.ruff]
+line-length = 80
